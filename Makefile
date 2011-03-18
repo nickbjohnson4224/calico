@@ -1,5 +1,5 @@
-SOURCES := $(patsubst %.c,%.o,$(shell find src -name "*.c"))
-HEADERS := $(shell find src -name "*.h")
+SOURCES := $(patsubst %.c,%.o,$(shell find . -name "*.c"))
+HEADERS := $(shell find . -name "*.h")
 
 CFLAGS  := -Werror -pedantic -std=c99
 CFLAGS	+= -pipe
