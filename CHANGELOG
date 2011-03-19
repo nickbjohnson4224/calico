@@ -1,3 +1,7 @@
 2011-1-22:
 	- wrote working implementation of Go rules
 	- text interface similar to GNU Go
+
+2011-3-19:
+	- rewrote existing implementation in C++
+	- switched to disjoint-set trees for groups

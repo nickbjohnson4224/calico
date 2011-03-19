@@ -1,7 +1,7 @@
-SOURCES := $(patsubst %.c,%.o,$(shell find . -name "*.c"))
+SOURCES := $(patsubst %.cpp,%.o,$(shell find . -name "*.cpp"))
 HEADERS := $(shell find . -name "*.h")
 
-CFLAGS  := -Werror -pedantic -std=c99
+CFLAGS  := -Wall -Wextra -Werror -pedantic -std=c++0x
 CFLAGS	+= -pipe
 CFLAGS	+= -fomit-frame-pointer -O3
 
@@ -11,9 +11,9 @@ calico: $(SOURCES) $(HEADERS)
 	@ echo " LD	" $(SOURCES)
 	@ clang $(SOURCES) -o calico -lm
 
-%.o: %.c
-	@ echo " CC	" $<
+%.o: %.cpp $(HEADERS)
+	@ echo " CPP	" $<
 	@ clang $(CFLAGS) -c $< -o $@
 
 clean:
-	@ rm $(SOURCES) src/calico.o
+	@ rm $(SOURCES) calico

@@ -14,52 +14,88 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdio.h>
-#include "calico.h"
+#include "goban.h"
 
-int print_goban(struct goban *goban) {
+#include <cstdio>
+#include <ctype.h>
+
+void print(class calico::goban *goban) {
 	int x, y;
-	const char *letters = "ABCDEFGHJKLMNOPQRST";
+	const char *letters = " ABCDEFGHJKLMNOPQRST";
 
 	printf("\n    ");
-	for (x = 0; x < 19; x++) {
+	for (x = 1; x <= 19; x++) {
 		printf("%c ", letters[x]);
 	}
 	printf("\n");
 
-	for (y = 0; y < 19; y++) {
+	for (y = 19; y > 0; y--) {
+		printf(" %2d ", y);
 
-		printf(" %2d ", 19 - y);
-
-		for (x = 0; x < 19; x++) {
-
-			if (goban_get_color(goban, x, y) == COL_W) {
+		for (x = 1; x <= 19; x++) {
+			
+			if (goban->get(x, y)->player == calico::WHITE) {
 				printf("O ");
 			}
-			else if (goban_get_color(goban, x, y) == COL_B) {
+			else if (goban->get(x, y)->player == calico::BLACK) {
 				printf("# ");
 			}
 			else {
-				if ((x - 3) % 6 == 0 && (y - 3) % 6 == 0) {
+				if ((x - 3) % 6 == 1 && (y - 3) % 6 == 1) {
 					printf("+ ");
 				}
 				else {
-					printf(". ");
+					printf("- ");
 				}
 			}
 		}
 
-		printf("%-2d\n", 19 - y);
+		printf("%-2d\n", y);
 	}
 
 	printf("    ");
-	for (x = 0; x < 19; x++) {
+	for (x = 1; x <= 19; x++) {
 		printf("%c ", letters[x]);
 	}
 	printf("\n\n");
+}
 
-	printf("black: %d\twhite: %d\n", goban->b_caps, goban->w_caps);
+int read_move(int *x, int *y) {
+	char buffer[100];
+	char letter;
+	int number;
 
-	printf("\n");
+	fgets(buffer, 100, stdin);
+	sscanf(buffer, "%c %d", &letter, &number);
+
+	letter = toupper(letter) - 'A';
+
+	if (letter >= 8) {
+		letter--;
+	}
+
+	*x = letter + 1;
+	*y = number;
+
+	return 0;
+}
+
+int main(void) {
+	class calico::goban goban(19);
+	int x, y;
+
+	while (1) {
+		print(&goban);
+		printf("enter a move: ");
+		read_move(&x, &y);
+
+		if (goban.check_move(x, y)) {
+			goban.move_unchecked(x, y);
+		}
+		else {
+			printf("invalid move\n");
+		}
+	}
+
 	return 0;
 }
