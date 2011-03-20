@@ -9,11 +9,11 @@ all: calico $(SOURCES) $(HEADERS)
 
 calico: $(SOURCES) $(HEADERS)
 	@ echo " LD	" $(SOURCES)
-	@ clang $(SOURCES) -o calico -lm
+	@ clang++ $(SOURCES) -o calico -lm
 
 %.o: %.cpp $(HEADERS)
 	@ echo " CPP	" $<
-	@ clang $(CFLAGS) -c $< -o $@
+	@ clang++ $(CFLAGS) -c $< -o $@
 
 clean:
 	@ rm $(SOURCES) calico

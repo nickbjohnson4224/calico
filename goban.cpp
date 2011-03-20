@@ -52,8 +52,7 @@ using namespace calico;
  * The goban internal state is completely contained within the memory
  * allocated to the class, i.e. there are no pointers within the class to
  * memory outside of the class. This should help to improve memory locality
- * and therefore reduce cache misses, and allows the fast memcpy() function
- * to be used for cloning the goban (which is a frequent operation in MCTS).
+ * and therefore reduce cache misses.
  *
  * Groups of pieces are implemented as a disjoint-set forest. Each piece
  * points to a "group leader" (or points to another piece in the group), which
@@ -119,55 +118,56 @@ void goban::init(int cols, int rows) {
 	for (int i = 0; i < cols; i++) {
 		for (int j = 0; j < rows; j++) {
 			this->board[i][j].player = EMPTY;
-			this->board[i][j].group  = &this->board[i][j];
+			this->board[i][j].pos    = i + j * cols;
+			this->board[i][j].group  = this->board[i][j].pos;
 			this->board[i][j].libs   = 0;
 			this->board[i][j].rank   = 0;
 		}
 	}
 
-	// link pieces rightward
+ 	// link pieces rightward
 	for (int i = 0; i < cols - 1; i++) {
 		for (int j = 0; j < rows; j++) {
-			this->board[i][j].link[0] = &this->board[i+1][j];
+			this->board[i][j].link[0] = (i + 1) + j * cols;
 		}
 	}
 	for (int j = 0; j < rows; j++) {
-		this->board[cols - 1][j].link[0] = NULL;
+		this->board[cols - 1][j].link[0] = PASS;
 	}
 
 	// link pieces upward
 	for (int i = 0; i < cols; i++) {
 		for (int j = 0; j < rows - 1; j++) {
-			this->board[i][j].link[1] = &this->board[i][j+1];
+			this->board[i][j].link[1] = i + (j + 1) * cols;
 		}
 	}
 	for (int i = 0; i < cols; i++) {
-		this->board[i][rows - 1].link[1] = NULL;
+		this->board[i][rows - 1].link[1] = PASS;
 	}
 
 	// link pieces leftward
 	for (int i = 1; i < cols; i++) {
 		for (int j = 0; j < rows; j++) {
-			this->board[i][j].link[2] = &this->board[i-1][j];
+			this->board[i][j].link[2] = (i - 1) + j * cols;
 		}
 	}
 	for (int j = 0; j < rows; j++) {
-		this->board[0][j].link[2] = NULL;
+		this->board[0][j].link[2] = PASS;
 	}
 
 	// link pieces downward
 	for (int i = 0; i < cols; i++) {
 		for (int j = 1; j < rows; j++) {
-			this->board[i][j].link[3] = &this->board[i][j-1];
+			this->board[i][j].link[3] = i + (j - 1) * cols;
 		}
 	}
-	for (int i = 0; i < cols; i++) {
-		this->board[i][0].link[3] = NULL;
+	for (int i = 0;i < cols; i++) {
+		this->board[i][0].link[3] = PASS;
 	}
 
 	// set other metadata
 	this->turn = BLACK;
-	this->ko   = NULL;
+	this->ko   = PASS;
 	this->pass = false;
 }
 
@@ -228,17 +228,17 @@ struct piece *goban::get_group(struct piece *piece) {
 	}
 
 	// correct null groups
-	if (piece->group == NULL) {
-		piece->group = piece;
+	if (piece->group == PASS) {
+		piece->group = piece->pos;
 	}
 
-	if (piece->group == piece) {
+	if (piece->group == piece->pos) {
 		// piece is group leader
 		return piece;
 	}
 	else {
-		piece->group = this->get_group(piece->group);
-		return piece->group;
+		piece->group = this->get(piece->group)->pos;
+		return this->get(piece->group);
 	}
 }
 
@@ -260,17 +260,17 @@ void goban::merge_group(struct piece *p1, struct piece *p2) {
 
 	if (group1->rank < group2->rank) {
 		// group 1 is added to group 2
-		group1->group = group2;
+		group1->group = group2->pos;
 		group2->libs += group1->libs;
 	}
 	else if (group1->rank > group2->rank) {
 		// group 2 is added to group 1
-		group2->group = group1;
+		group2->group = group1->pos;
 		group1->libs += group2->libs;
 	}
 	else {
 		// group 2 is added to group 1 and group 1 is promoted
-		group2->group = group1;
+		group2->group = group1->pos;
 		group1->rank++;
 		group1->libs += group2->libs;
 	}
@@ -298,7 +298,7 @@ void goban::delete_group(struct piece *group) {
 
 			// delete piece
 			piece->player = EMPTY;
-			piece->group  = piece;
+			piece->group  = piece->pos;
 			piece->rank   = 0;
 			piece->libs   = 0;
 
@@ -428,16 +428,16 @@ bool goban::check_move(int col, int row) {
 	}
 
 	// check for liberties (if so, succeeed)
-	if ((piece->link[0] && piece->link[0]->player == EMPTY) ||
-		(piece->link[1] && piece->link[1]->player == EMPTY) ||
-		(piece->link[2] && piece->link[2]->player == EMPTY) ||
-		(piece->link[3] && piece->link[3]->player == EMPTY)) {
+	if ((piece->link[0] != PASS && this->get(piece->link[0])->player == EMPTY) ||
+		(piece->link[1] != PASS && this->get(piece->link[1])->player == EMPTY) ||
+		(piece->link[2] != PASS && this->get(piece->link[2])->player == EMPTY) ||
+		(piece->link[3] != PASS && this->get(piece->link[3])->player == EMPTY)) {
 			return true;
 	}
 
 	// check for captures (if so: if ko, fail, otherwise succeed)
 	for (int l = 0; l < 4; l++) {
-		if (piece->link[l] && piece->link[l]->player == opponent) {
+		if (piece->link[l] != PASS && this->get(piece->link[l])->player == opponent) {
 			if (this->get_libs(piece->link[l]) == 1) {
 				// there is a capture; check for ko
 				if (piece->link[l] == this->ko) {
@@ -454,7 +454,7 @@ bool goban::check_move(int col, int row) {
 
 	// check for suicide (if so, fail)
 	for (int l = 0; l < 4; l++) {
-		if (piece->link[l] && piece->link[l]->player == this->turn) {
+		if (piece->link[l] != PASS && this->get(piece->link[l])->player == this->turn) {
 			if (this->get_libs(piece->link[l]) > 1) {
 				return true; // no suicide
 			}
@@ -558,41 +558,41 @@ void goban::move_unchecked(int col, int row) {
 
 	// count initial liberties
 	for (int l = 0; l < 4; l++) {
-		if (piece->link[l] && piece->link[l]->player == EMPTY) {
+		if (piece->link[l] != PASS && this->get(piece->link[l])->player == EMPTY) {
 			piece->libs++;
 		}
 	}
 
 	// reduce liberties of adjacent groups
 	for (int l = 0; l < 4; l++) {
-		if (piece->link[l] && piece->link[l]->player != EMPTY) {
+		if (piece->link[l] != PASS && this->get(piece->link[l])->player != EMPTY) {
 			this->get_group(piece->link[l])->libs--;
 		}
 	}
 
 	// merge with adjacent allies
 	for (int l = 0; l < 4; l++) {
-		if (piece->link[l] && piece->link[l]->player == this->turn) {
-			this->merge_group(piece, piece->link[l]);
+		if (piece->link[l] != PASS && this->get(piece->link[l])->player == this->turn) {
+			this->merge_group(piece, this->get(piece->link[l]));
 		}
 	}
 
 	// capture opponent if possible
 	bool caps = false; // did we capture anything?
 	for (int l = 0; l < 4; l++) {
-		if (piece->link[l] && piece->link[l]->player == opponent) {
+		if (piece->link[l] != PASS && this->get(piece->link[l])->player == opponent) {
 			
 			// capture if no liberties remain
 			if (this->get_libs(piece->link[l]) == 0) {
 				caps = true;
-				this->delete_group(piece->link[l]);
+				this->delete_group(this->get(piece->link[l]));
 			}
 		}
 	}
 
 	// set ko
-	if (caps && piece->group == piece) {
-		this->ko = piece;
+	if (caps && piece->group == piece->pos) {
+		this->ko = piece->pos;
 	}
 	else {
 		this->ko = NULL;
@@ -618,7 +618,7 @@ void goban::move_unchecked(int move) {
 	// perform a pass
 	if (move == PASS) {
 		this->turn = opponent;
-		this->ko   = NULL;
+		this->ko   = PASS;
 		this->pass = true;
 		return;
 	}

@@ -29,17 +29,18 @@ namespace calico {
 	};
 
 	struct piece {
-		struct piece *link[4]; // right, up, left, down
 		enum player player;
+		int link[4]; // right, up, left, down
+		int pos;
 
-		struct piece *group;
+		int group;
 		int libs;
 		int rank;
 	};
 
 	class goban {
 		struct piece board[MAX_DIM][MAX_DIM];
-		struct piece *ko;
+		int ko;
 		
 	public:
 		enum player turn;

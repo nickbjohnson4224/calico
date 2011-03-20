@@ -16,8 +16,10 @@
 
 #include "goban.h"
 
-#include <cstdio>
+#include <cstdlib>
 #include <ctype.h>
+#include <cstdio>
+#include <time.h>
 
 void print(class calico::goban *goban) {
 	int x, y;
@@ -76,6 +78,16 @@ int read_move(int *x, int *y) {
 
 	*x = letter + 1;
 	*y = number;
+
+	return 0;
+}
+
+int playout(const class calico::goban *goban) {
+	class calico::goban goban_clone(goban);
+
+	for (int i = 0; i < 100; i++) {
+		goban_clone.move(rand() % 361);
+	}
 
 	return 0;
 }
