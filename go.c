@@ -27,6 +27,7 @@
 #define ADJ_L 2
 #define ADJ_D 3
 static int get_adj(int pos, int direction);
+static int adj_genned = 0;
 
 // groups
 static int  get_group(struct go_board *board, int pos);
@@ -48,6 +49,8 @@ struct go_board *new_board(void) {
 	for (i = 0; i < GO_DIM * GO_DIM; i++) {
 		board->pos[i].group = i;
 	}
+
+	if (!adj_genned) gen_adj();
 
 	return board;
 }
@@ -158,7 +161,9 @@ int check(struct go_board *board, int pos, int player) {
 	return 1;
 }
 
-static int get_adj(int pos, int direction) {
+static int _adj_map[4][GO_DIM * GO_DIM];
+
+static int _get_adj(int pos, int direction) {
 	int x, y;
 
 	if (pos == PASS) {
@@ -179,18 +184,47 @@ static int get_adj(int pos, int direction) {
 	return get_pos(x, y);
 }
 
-static int get_group(struct go_board *board, int pos) {
+static int get_adj(int pos, int direction) {
 
-	if (pos < 0 || pos > GO_DIM * GO_DIM) {
+	if (pos == PASS) {
 		return PASS;
 	}
+
+	return _adj_map[direction][pos];
+}
+
+int gen_adj(void) {
+	int i, j;
+
+	for (i = 0; i < GO_DIM * GO_DIM; i++) {
+		for (j = 0; j < 4; j++) {
+			_adj_map[j][i] = _get_adj(i, j);
+		}
+	}
+
+	return 0;
+}
+
+static int get_group(struct go_board *board, int pos) {
 
 	if (board->pos[pos].group == pos) {
 		return pos;
 	}
 	else {
-		board->pos[pos].group = get_group(board, board->pos[pos].group);
-		return board->pos[pos].group;
+
+		/*
+		 * Note:
+		 * The following commented-out code guarantees much better asymptotic
+		 * performance. However, in practice, it slows down the whole program
+		 * by a significant margin (~35%). This is likely because the set tree
+		 * will rarely become more than one layer deep, unless multiple large
+		 * groups are merged, which is much less common than a single piece
+		 * being merged with a large group.
+		 */
+
+//		board->pos[pos].group = get_group(board, board->pos[pos].group);
+//		return board->pos[pos].group;
+		return get_group(board, board->pos[pos].group);
 	}
 }
 

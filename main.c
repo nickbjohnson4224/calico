@@ -37,7 +37,7 @@ void print(struct go_board *board) {
 		for (x = 1; x <= 19; x++) {
 			
 			if (get_color(board, get_pos(x, y)) == WHITE) {
-				printf("%d ", get_libs(board, get_pos(x, y)));
+				printf("O ");
 			}
 			else if (get_color(board, get_pos(x, y)) == BLACK) {
 				printf("# ");
@@ -82,13 +82,37 @@ int read_move(int *x, int *y) {
 	return 0;
 }
 
+int playout(const struct go_board *board_init) {
+	struct go_board *board;
+	int i;
+	int move;
+
+	board = clone_board(board_init);
+
+	for (i = 0; i < 300;) {
+		move = rand() % 361;
+
+		if (check(board, move, board->player)) continue;
+		place(board, move, board->player);
+		board->player = -board->player;
+		i++;
+	}
+
+//	print(board);
+
+	free(board);
+	return 0;
+}
+
 int main(void) {
 	struct go_board *board;
 	int x, y;
 
 	board = new_board();
 
-	while (1) {
+	srand(time(NULL));
+	for (y = 0, x = 0; x < 100; x++) playout(board);
+/*	while (1) {
 		print(board);
 		printf("enter a move: ");
 		read_move(&x, &y);
@@ -100,7 +124,7 @@ int main(void) {
 		else {
 			printf("invalid move\n");
 		}
-	}
+	} */
 
 	return 0;
 }

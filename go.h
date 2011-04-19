@@ -46,6 +46,8 @@ int get_pos(int x, int y);
 int get_color(const struct go_board *board, int pos);
 int get_libs(struct go_board *board, int pos);
 
+int gen_adj(void);
+
 int place(struct go_board *board, int pos, int player);
 int check(struct go_board *board, int pos, int player);
 
