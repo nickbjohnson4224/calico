@@ -14,14 +14,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "goban.h"
+#include "go.h"
 
-#include <cstdlib>
+#include <stdlib.h>
 #include <ctype.h>
-#include <cstdio>
+#include <stdio.h>
 #include <time.h>
 
-void print(class calico::goban *goban) {
+void print(struct go_board *board) {
 	int x, y;
 	const char *letters = " ABCDEFGHJKLMNOPQRST";
 
@@ -36,10 +36,10 @@ void print(class calico::goban *goban) {
 
 		for (x = 1; x <= 19; x++) {
 			
-			if (goban->get(x, y)->player == calico::WHITE) {
-				printf("O ");
+			if (get_color(board, get_pos(x, y)) == WHITE) {
+				printf("%d ", get_libs(board, get_pos(x, y)));
 			}
-			else if (goban->get(x, y)->player == calico::BLACK) {
+			else if (get_color(board, get_pos(x, y)) == BLACK) {
 				printf("# ");
 			}
 			else {
@@ -82,27 +82,20 @@ int read_move(int *x, int *y) {
 	return 0;
 }
 
-int playout(const class calico::goban *goban) {
-	class calico::goban goban_clone(goban);
-
-	for (int i = 0; i < 100; i++) {
-		goban_clone.move(rand() % 361);
-	}
-
-	return 0;
-}
-
 int main(void) {
-	class calico::goban goban(19);
+	struct go_board *board;
 	int x, y;
 
+	board = new_board();
+
 	while (1) {
-		print(&goban);
+		print(board);
 		printf("enter a move: ");
 		read_move(&x, &y);
 
-		if (goban.check_move(x, y)) {
-			goban.move_unchecked(x, y);
+		if (!check(board, get_pos(x, y), board->player)) {
+			place(board, get_pos(x, y), board->player);
+			board->player = -board->player;
 		}
 		else {
 			printf("invalid move\n");
