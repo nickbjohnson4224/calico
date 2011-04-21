@@ -41,6 +41,7 @@ struct go_board {
 
 struct go_board *new_board  (void);
 struct go_board *clone_board(const struct go_board *board);
+void fix_board(struct go_board *board);
 
 int get_pos(int x, int y);
 int get_color(const struct go_board *board, int pos);
@@ -50,5 +51,7 @@ int gen_adj(void);
 
 int place(struct go_board *board, int pos, int player);
 int check(struct go_board *board, int pos, int player);
+
+void print(struct go_board *board);
 
 #endif/*GO_H*/

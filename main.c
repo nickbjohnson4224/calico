@@ -15,6 +15,7 @@
  */
 
 #include "go.h"
+#include "playout.h"
 
 #include <stdlib.h>
 #include <ctype.h>
@@ -23,6 +24,7 @@
 
 void print(struct go_board *board) {
 	int x, y;
+	int libs;
 	const char *letters = " ABCDEFGHJKLMNOPQRST";
 
 	printf("\n    ");
@@ -36,6 +38,7 @@ void print(struct go_board *board) {
 
 		for (x = 1; x <= 19; x++) {
 			
+			libs = get_libs(board, get_pos(x, y));
 			if (get_color(board, get_pos(x, y)) == WHITE) {
 				printf("O ");
 			}
@@ -82,28 +85,6 @@ int read_move(int *x, int *y) {
 	return 0;
 }
 
-int playout(const struct go_board *board_init) {
-	struct go_board *board;
-	int i;
-	int move;
-
-	board = clone_board(board_init);
-
-	for (i = 0; i < 300;) {
-		move = rand() % 361;
-
-		if (check(board, move, board->player)) continue;
-		place(board, move, board->player);
-		board->player = -board->player;
-		i++;
-	}
-
-//	print(board);
-
-	free(board);
-	return 0;
-}
-
 int main(void) {
 	struct go_board *board;
 	int x, y;
@@ -111,7 +92,7 @@ int main(void) {
 	board = new_board();
 
 	srand(time(NULL));
-	for (y = 0, x = 0; x < 100; x++) playout(board);
+	for (y = 0, x = 0; x < 10000; x++) playout(board);
 /*	while (1) {
 		print(board);
 		printf("enter a move: ");

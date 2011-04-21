@@ -16,8 +16,10 @@
 
 #include "go.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 #define get_opponent(p) (-(p))
 
@@ -33,10 +35,7 @@ static int adj_genned = 0;
 static int  get_group(struct go_board *board, int pos);
 static void merge    (struct go_board *board, int g1, int g2);
 static void capture  (struct go_board *board, int pos);
-static void set_libs (struct go_board *board, int pos, int value);
 static void add_libs (struct go_board *board, int pos, int value);
-
-static void set_color(struct go_board *board, int pos, int color);
 
 struct go_board *new_board(void) {
 	struct go_board *board;
@@ -64,6 +63,22 @@ struct go_board *clone_board(const struct go_board *board) {
 	return new;
 }
 
+void fix_board(struct go_board *board) {
+	int i, j;
+
+	for (i = 0; i < 361; i++) {
+		board->pos[i].libs = 0;
+	}
+
+	for (i = 0; i < 361; i++) {
+		if (board->pos[i].color == EMPTY) {
+			for (j = 0; j < 4; j++) {
+				add_libs(board, get_adj(i, j), 1);
+			}
+		}
+	}
+}
+
 int get_pos(int x, int y) {
 	
 	// bounds check
@@ -78,6 +93,8 @@ int place(struct go_board *board, int pos, int player) {
 	int libs;
 	int i;
 	
+	board->ko = PASS;
+
 	// reduce liberties of all adjacent groups
 	for (i = 0; i < 4; i++) {
 		add_libs(board, get_adj(pos, i), -1);
@@ -86,9 +103,10 @@ int place(struct go_board *board, int pos, int player) {
 	// capture all adjacent enemy groups with no liberties
 	for (i = 0; i < 4; i++) {
 		if (get_color(board, get_adj(pos, i)) == get_opponent(player) 
-			&& get_libs(board, get_adj(pos, i)) == 0) {
+			&& get_libs(board, get_adj(pos, i)) <= 0) {
 			
 			capture(board, get_adj(pos, i));
+			board->ko = pos;
 		}
 	}
 
@@ -99,10 +117,10 @@ int place(struct go_board *board, int pos, int player) {
 		}
 	}
 
-	set_libs (board, pos, libs);
-	set_color(board, pos, player);
-
-	board->ko = pos;
+	board->pos[pos].libs  = libs;
+	board->pos[pos].color = player;
+	board->pos[pos].group = pos;
+	board->pos[pos].rank  = 0;
 
 	// merge with adjacent allied groups
 	for (i = 0; i < 4; i++) {
@@ -152,7 +170,7 @@ int check(struct go_board *board, int pos, int player) {
 			}
 		}
 		else if (get_color(board, get_adj(pos, i)) == get_opponent(player)) {
-			if (libs == get_libs(board, get_adj(pos, i))) {
+			if (libs >= get_libs(board, get_adj(pos, i))) {
 				return 0;
 			}
 		}
@@ -207,6 +225,10 @@ int gen_adj(void) {
 
 static int get_group(struct go_board *board, int pos) {
 
+	if (pos == PASS) {
+		return PASS;
+	}
+
 	if (board->pos[pos].group == pos) {
 		return pos;
 	}
@@ -230,6 +252,7 @@ static int get_group(struct go_board *board, int pos) {
 
 static void merge(struct go_board *board, int g1, int g2) {
 	int libs;
+	int g3;
 
 	g1 = get_group(board, g1);
 	g2 = get_group(board, g2);
@@ -237,32 +260,47 @@ static void merge(struct go_board *board, int g1, int g2) {
 	if (g1 == g2 || g1 == PASS || g2 == PASS) return;
 
 	libs = board->pos[g1].libs + board->pos[g2].libs;
-	board->pos[g1].libs = libs;
-	board->pos[g2].libs = libs;
 
 	if (board->pos[g1].rank < board->pos[g2].rank) {
 		board->pos[g1].group = g2;
+		g3 = g2;
 	}
 	else if (board->pos[g1].rank > board->pos[g2].rank) {
 		board->pos[g2].group = g1;
+		g3 = g1;
 	}
 	else {
 		board->pos[g1].group = g2;
 		board->pos[g2].rank++;
+		g3 = g2;
 	}
+
+	board->pos[g3].libs = libs;
 }
 
 static void capture(struct go_board *board, int pos) {
 	int group;
 	int i, j;
 
+	uint32_t map[GO_DIM * GO_DIM / 32 + 1];
+
 	if (pos == PASS) return;
 
 	group = get_group(board, pos);
 
+	for (i = 0; i < (GO_DIM * GO_DIM / 32 + 1); i++) {
+		map[i] = 0;
+	}
+
 	for (i = 0; i < GO_DIM * GO_DIM; i++) {
-		if (get_group(board, i) == group && i != group) {
-			board->pos[i].group = i;
+		if (get_group(board, i) == group) {
+			map[i >> 5] |= (1 << (i % 32));
+		}
+	}
+
+	for (i = 0; i < GO_DIM * GO_DIM; i++) {
+		if (map[i >> 5] & (1 << (i % 32))) {
+			board->pos[i].group = PASS;
 			board->pos[i].libs  = 0;
 			board->pos[i].color = EMPTY;
 			board->pos[i].rank  = 0;
@@ -271,14 +309,6 @@ static void capture(struct go_board *board, int pos) {
 				add_libs(board, get_adj(i, j), 1);
 			}
 		}
-	}
-
-	board->pos[group].libs  = 0;
-	board->pos[group].color = EMPTY;
-	board->pos[group].rank  = 0;
-	
-	for (j = 0; j < 4; j++) {
-		add_libs(board, get_adj(group, j), 1);
 	}
 }
 
@@ -291,20 +321,11 @@ int get_libs(struct go_board *board, int pos) {
 	return board->pos[get_group(board, pos)].libs;
 }
 
-static void set_libs(struct go_board *board, int pos, int value) {
-	
-	if (pos == PASS) {
-		return;
-	}
-
-	board->pos[get_group(board, pos)].libs = value;
-}
-
 static void add_libs(struct go_board *board, int pos, int value) {
 
 	pos = get_group(board, pos);
 
-	if (pos < 0) {
+	if (pos == PASS) {
 		return;
 	}
 
@@ -318,13 +339,4 @@ int get_color(const struct go_board *board, int pos) {
 	}
 
 	return board->pos[pos].color;
-}
-
-static void set_color(struct go_board *board, int pos, int color) {
-	
-	if (pos == PASS) {
-		return;
-	}
-
-	board->pos[pos].color = color;
 }
