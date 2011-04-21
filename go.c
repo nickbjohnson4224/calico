@@ -28,7 +28,6 @@
 #define ADJ_U 1
 #define ADJ_L 2
 #define ADJ_D 3
-static int get_adj(int pos, int direction);
 static int adj_genned = 0;
 
 // groups
@@ -92,27 +91,29 @@ int get_pos(int x, int y) {
 int place(struct go_board *board, int pos, int player) {
 	int libs;
 	int i;
+	int color;
+	int adj[4];
 	
 	board->ko = PASS;
 
 	// reduce liberties of all adjacent groups
 	for (i = 0; i < 4; i++) {
-		add_libs(board, get_adj(pos, i), -1);
+		adj[i] = get_adj(pos, i);
+		add_libs(board, adj[i], -1);
 	}
 
-	// capture all adjacent enemy groups with no liberties
-	for (i = 0; i < 4; i++) {
-		if (get_color(board, get_adj(pos, i)) == get_opponent(player) 
-			&& get_libs(board, get_adj(pos, i)) <= 0) {
-			
-			capture(board, get_adj(pos, i));
-			board->ko = pos;
-		}
-	}
-
-	// count liberties of added piece
 	for (libs = 0, i = 0; i < 4; i++) {
-		if (get_color(board, get_adj(pos, i)) == EMPTY) {
+		color = get_color(board, adj[i]);
+		// capture all adjacent enemy groups with no liberties
+		if (color == get_opponent(player)) {
+			if (get_libs(board, adj[i]) <= 0) {
+				capture(board, adj[i]);
+				board->ko = pos;
+				libs++;
+			}
+		}
+		// count liberties of added piece
+		else if (color == EMPTY) {
 			libs++;
 		}
 	}
@@ -124,8 +125,8 @@ int place(struct go_board *board, int pos, int player) {
 
 	// merge with adjacent allied groups
 	for (i = 0; i < 4; i++) {
-		if (get_color(board, get_adj(pos, i)) == player) {
-			merge(board, pos, get_adj(pos, i));
+		if (get_color(board, adj[i]) == player) {
+			merge(board, pos, adj[i]);
 			board->ko = PASS;
 		}
 	}
@@ -202,7 +203,7 @@ static int _get_adj(int pos, int direction) {
 	return get_pos(x, y);
 }
 
-static int get_adj(int pos, int direction) {
+int get_adj(int pos, int direction) {
 
 	if (pos == PASS) {
 		return PASS;

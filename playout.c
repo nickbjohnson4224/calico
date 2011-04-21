@@ -20,31 +20,31 @@
 #include <stdio.h>
 
 static int is_bad_move(struct go_board *board, int move, int player);
-static int is_finished(struct go_board *board);
+//static int is_finished(struct go_board *board);
 static int score(struct go_board *board);
 
 int playout(const struct go_board *board_init) {
 	struct go_board *board;
-	int i, j, move, winner;
+	int i, j, move, winner, pass;
 
 	board = clone_board(board_init);
 
 	i = 0;
 	j = 0;
+	pass = 0;
 	while (1) {
-		move = rand() % 361;
+		move = rand() % (GO_DIM * GO_DIM);
 
 		if (is_bad_move(board, move, board->player)) {
 			j++;
 
-			if (j >= 20) {
-				if (is_finished(board)) {
+			if (j >= 100) {
+				pass++;
+				board->player = -board->player;
+				if (pass >= 2) {
 					winner = score(board);
 					free(board);
 					return (winner > 0) ? BLACK : WHITE;
-				}
-				else {
-					j = 0;
 				}
 			}
 
@@ -68,11 +68,9 @@ static int is_bad_move(struct go_board *board, int move, int player) {
 		return 1;
 	}
 
-	return 0;
-
 	adj = 0;
 	for (i = 0; i < 4; i++) {
-		if (get_color(board, move) == player) adj++;
+		if (get_color(board, get_adj(move, i)) == player) adj++;
 	}
 
 	if (adj == 4) {
@@ -82,7 +80,7 @@ static int is_bad_move(struct go_board *board, int move, int player) {
 	return 0;
 }
 
-static int is_finished(struct go_board *board) {
+/*static int is_finished(struct go_board *board) {
 	int i;
 
 	for (i = 0; i < 361; i++) {
@@ -92,20 +90,43 @@ static int is_finished(struct go_board *board) {
 	}
 
 	return 1;
-}
+}*/
 
 static int score(struct go_board *board) {
 	int i, w, b;
 
 	w = b = 0;
-	for (i = 0; i < 361; i++) {
+	for (i = 0; i < GO_DIM * GO_DIM; i++) {
 		if (get_color(board, i) == WHITE) {
 			w++;
 		}
 		if (get_color(board, i) == BLACK) {
 			b++;
 		}
+		if (get_color(board, i) == EMPTY) {
+			for (int j = 0; j < 4; j++) {
+				if (get_color(board, get_adj(i, j)) == WHITE) {
+					w++;
+					break;
+				}
+				if (get_color(board, get_adj(i, j)) == BLACK) {
+					b++;
+					break;
+				}
+			}
+		}
 	}
 
-	return (b - w - 5);
+	return (b - w);
+}
+
+double winrate(const struct go_board *board, int player, int tries) {
+	int i;
+	int wins;
+
+	for (wins = 0, i = 0; i < tries; i++) {
+		if (playout(board) == player) wins++;
+	}
+
+	return ((double) wins / (double) tries);
 }

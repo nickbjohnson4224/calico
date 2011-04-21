@@ -21,4 +21,6 @@
 
 int playout(const struct go_board *board);
 
+double winrate(const struct go_board *board, int player, int tries);
+
 #endif/*PLAYOUT_H*/

@@ -17,6 +17,8 @@
 #ifndef GO_H
 #define GO_H
 
+#include <stdint.h>
+
 #define PASS (-1)
 
 #define WHITE (-1)
@@ -24,13 +26,13 @@
 #define EMPTY 0
 #define INVAL 2
 
-#define GO_DIM 19
+#define GO_DIM 9
 
 struct go_piece {
-	int group;
-	int color;
-	int rank;
-	int libs;
+	int16_t group;
+	int16_t libs;
+	int8_t color;
+	int8_t rank;
 };
 
 struct go_board {
@@ -41,13 +43,13 @@ struct go_board {
 
 struct go_board *new_board  (void);
 struct go_board *clone_board(const struct go_board *board);
-void fix_board(struct go_board *board);
 
 int get_pos(int x, int y);
 int get_color(const struct go_board *board, int pos);
 int get_libs(struct go_board *board, int pos);
 
 int gen_adj(void);
+int get_adj(int pos, int dir);
 
 int place(struct go_board *board, int pos, int player);
 int check(struct go_board *board, int pos, int player);

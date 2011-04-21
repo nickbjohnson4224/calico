@@ -28,15 +28,15 @@ void print(struct go_board *board) {
 	const char *letters = " ABCDEFGHJKLMNOPQRST";
 
 	printf("\n    ");
-	for (x = 1; x <= 19; x++) {
+	for (x = 1; x <= GO_DIM; x++) {
 		printf("%c ", letters[x]);
 	}
 	printf("\n");
 
-	for (y = 19; y > 0; y--) {
+	for (y = GO_DIM; y > 0; y--) {
 		printf(" %2d ", y);
 
-		for (x = 1; x <= 19; x++) {
+		for (x = 1; x <= GO_DIM; x++) {
 			
 			libs = get_libs(board, get_pos(x, y));
 			if (get_color(board, get_pos(x, y)) == WHITE) {
@@ -59,7 +59,7 @@ void print(struct go_board *board) {
 	}
 
 	printf("    ");
-	for (x = 1; x <= 19; x++) {
+	for (x = 1; x <= GO_DIM; x++) {
 		printf("%c ", letters[x]);
 	}
 	printf("\n\n");
@@ -87,25 +87,73 @@ int read_move(int *x, int *y) {
 
 int main(void) {
 	struct go_board *board;
-	int x, y;
+	struct go_board *vboard;
+	int x, y, i;
+	double wr[GO_DIM * GO_DIM];
+	double wr_avg;
+	double best;
+	int best_move;
 
 	board = new_board();
 
 	srand(time(NULL));
-	for (y = 0, x = 0; x < 10000; x++) playout(board);
-/*	while (1) {
-		print(board);
-		printf("enter a move: ");
-		read_move(&x, &y);
+	while (1) {
 
-		if (!check(board, get_pos(x, y), board->player)) {
-			place(board, get_pos(x, y), board->player);
-			board->player = -board->player;
+		board->player = BLACK;
+		wr_avg = 0.0;
+
+		// choose move (computer is black)
+		for (i = 0; i < GO_DIM * GO_DIM; i++) {
+			wr[i] = -1.0;
+			if (!check(board, i, BLACK)) {
+				vboard = clone_board(board);
+				place(vboard, i, BLACK);
+				wr[i] = winrate(vboard, BLACK, 100);
+				wr_avg += wr[i];
+				free(vboard);
+			}
 		}
-		else {
-			printf("invalid move\n");
+
+		wr_avg /= ((GO_DIM * GO_DIM));
+
+		// refine better moves
+		for (i = 0; i < 361; i++) {
+			if (wr[i] >= wr_avg) {
+				vboard = clone_board(board);
+				place(vboard, i, BLACK);
+				wr[i] = winrate(vboard, BLACK, 4000);
+				free(vboard);
+			}
 		}
-	} */
+
+		for (best_move = 60, best = -1.0, i = 0; i < GO_DIM * GO_DIM; i++) {
+			if (wr[i] > best) {
+				best_move = i;
+				best = wr[i];
+			}
+		}
+
+		place(board, best_move, BLACK);
+		printf("black's move: %d (%f%% winrate)\n", best_move, wr[best_move] * 100);
+
+		print(board);
+
+		board->player = WHITE;
+
+		while (1) {
+			printf("enter a move: ");
+			read_move(&x, &y);
+
+			if (!check(board, get_pos(x, y), WHITE)) {
+				place(board, get_pos(x, y), WHITE);
+				print(board);
+				break;
+			}
+			else {
+				printf("invalid move\n");
+			}
+		}
+	}
 
 	return 0;
 }
