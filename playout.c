@@ -38,9 +38,10 @@ int playout(const struct go_board *board_init) {
 		if (is_bad_move(board, move, board->player)) {
 			j++;
 
-			if (j >= 100) {
+			if (j >= GO_DIM * GO_DIM) {
 				pass++;
 				board->player = -board->player;
+				j = 0;
 				if (pass >= 2) {
 					winner = score(board);
 					free(board);
@@ -70,7 +71,7 @@ static int is_bad_move(struct go_board *board, int move, int player) {
 
 	adj = 0;
 	for (i = 0; i < 4; i++) {
-		if (get_color(board, get_adj(move, i)) == player) adj++;
+		if (get_color(board, get_adj(move, i)) == player || get_color(board, get_adj(move, i)) == INVAL) adj++;
 	}
 
 	if (adj == 4) {

@@ -15,6 +15,7 @@
  */
 
 #include "go.h"
+#include "uct.h"
 #include "playout.h"
 
 #include <stdlib.h>
@@ -87,12 +88,10 @@ int read_move(int *x, int *y) {
 
 int main(void) {
 	struct go_board *board;
-	struct go_board *vboard;
+	struct uct_node *uct;
 	int x, y, i;
-	double wr[GO_DIM * GO_DIM];
-	double wr_avg;
-	double best;
 	int best_move;
+	double rate;
 
 	board = new_board();
 
@@ -100,41 +99,25 @@ int main(void) {
 	while (1) {
 
 		board->player = BLACK;
-		wr_avg = 0.0;
 
-		// choose move (computer is black)
-		for (i = 0; i < GO_DIM * GO_DIM; i++) {
-			wr[i] = -1.0;
-			if (!check(board, i, BLACK)) {
-				vboard = clone_board(board);
-				place(vboard, i, BLACK);
-				wr[i] = winrate(vboard, BLACK, 100);
-				wr_avg += wr[i];
-				free(vboard);
-			}
+		uct = new_uct(board);
+		for (i = 0; i < 10000; i++) {
+			uct_play(uct, 2);
 		}
 
-		wr_avg /= ((GO_DIM * GO_DIM));
+		best_move = uct_best_rate(uct);
+		rate = uct_eval_rate(uct, best_move);
+		uct_list(uct);
+		free_uct(uct);
 
-		// refine better moves
-		for (i = 0; i < 361; i++) {
-			if (wr[i] >= wr_avg) {
-				vboard = clone_board(board);
-				place(vboard, i, BLACK);
-				wr[i] = winrate(vboard, BLACK, 4000);
-				free(vboard);
-			}
-		}
-
-		for (best_move = 60, best = -1.0, i = 0; i < GO_DIM * GO_DIM; i++) {
-			if (wr[i] > best) {
-				best_move = i;
-				best = wr[i];
-			}
+		if (rate < .2) {
+			printf("black's move: resign");
+			print(board);
+			return 0;
 		}
 
 		place(board, best_move, BLACK);
-		printf("black's move: %d (%f%% winrate)\n", best_move, wr[best_move] * 100);
+		printf("black's move: %d\n", best_move);
 
 		print(board);
 

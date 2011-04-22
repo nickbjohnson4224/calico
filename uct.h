@@ -14,46 +14,38 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef GO_H
-#define GO_H
+#ifndef UCT_H
+#define UCT_H
 
-#include <stdint.h>
+#include "go.h"
 
-#define PASS (-1)
+struct uct_node {
+	struct go_board *state;
 
-#define WHITE (-1)
-#define BLACK 1
-#define EMPTY 0
-#define INVAL 2
-
-#define GO_DIM 7
-
-struct go_piece {
-	int16_t group;
-	int16_t libs;
-	int8_t color;
-	int8_t rank;
-};
-
-struct go_board {
-	struct go_piece pos[GO_DIM * GO_DIM];
-	int ko;
+	int move;
 	int player;
+	int wins;
+	int plays;
+	int valid;
+
+	struct uct_node *child[GO_DIM * GO_DIM];
+	struct uct_node *parent;
 };
 
-struct go_board *new_board  (void);
-struct go_board *clone_board(const struct go_board *board);
+struct uct_node *new_uct(const struct go_board *state);
+void free_uct(struct uct_node *uct);
 
-int get_pos(int x, int y);
-int get_color(const struct go_board *board, int pos);
-int get_libs(struct go_board *board, int pos);
+double uct_ucb(struct uct_node *uct);
+double uct_lcb(struct uct_node *uct);
+double uct_rate(struct uct_node *uct);
 
-int gen_adj(void);
-int get_adj(int pos, int dir);
+int uct_best_lcb(struct uct_node *uct);
+int uct_best_ucb(struct uct_node *uct);
+int uct_best_rate(struct uct_node *uct);
 
-int place(struct go_board *board, int pos, int player);
-int check(struct go_board *board, int pos, int player);
+double uct_eval_rate(struct uct_node *uct, int move);
 
-void print(struct go_board *board);
+int uct_play(struct uct_node *uct, int quantum);
+int uct_list(struct uct_node *uct);
 
-#endif/*GO_H*/
+#endif/*UCT_H*/
