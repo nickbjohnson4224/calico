@@ -35,25 +35,38 @@ void print(struct go_board *board) {
 	printf("\n");
 
 	for (y = GO_DIM; y > 0; y--) {
-		printf(" %2d ", y);
+		printf(" %2d", y);
+
+		if (board->last == get_pos(1, y)) {
+			printf("[");
+		}
+		else printf(" ");
 
 		for (x = 1; x <= GO_DIM; x++) {
 			
 			libs = get_libs(board, get_pos(x, y));
 			if (get_color(board, get_pos(x, y)) == WHITE) {
-				printf("O ");
+				printf("O");
 			}
 			else if (get_color(board, get_pos(x, y)) == BLACK) {
-				printf("# ");
+				printf("#");	
 			}
 			else {
 				if ((x - 3) % 6 == 1 && (y - 3) % 6 == 1) {
-					printf("+ ");
+					printf("+");
 				}
 				else {
-					printf("- ");
+					printf("-");
 				}
 			}
+
+			if (board->last == get_pos(x, y)) {
+				printf("]");
+			}
+			else if (board->last == get_pos(x + 1, y)) {
+				printf("[");
+			}
+			else printf(" ");
 		}
 
 		printf("%-2d\n", y);
@@ -102,7 +115,7 @@ int main(void) {
 
 		uct = new_uct(board);
 		for (i = 0; i < 10000; i++) {
-			uct_play(uct, 2);
+			uct_play(uct, 1);
 		}
 
 		best_move = uct_best_rate(uct);

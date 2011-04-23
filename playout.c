@@ -20,8 +20,7 @@
 #include <stdio.h>
 
 static int is_bad_move(struct go_board *board, int move, int player);
-//static int is_finished(struct go_board *board);
-static int score(struct go_board *board);
+static int can_play(struct go_board *board, int player);
 
 int playout(const struct go_board *board_init) {
 	struct go_board *board;
@@ -38,24 +37,37 @@ int playout(const struct go_board *board_init) {
 		if (is_bad_move(board, move, board->player)) {
 			j++;
 
-			if (j >= GO_DIM * GO_DIM) {
-				pass++;
-				board->player = -board->player;
-				j = 0;
-				if (pass >= 2) {
-					winner = score(board);
-					free(board);
-					return (winner > 0) ? BLACK : WHITE;
+			if (j > 20) {
+				if (!can_play(board, board->player)) {
+					pass++;
+					board->player = -board->player;
+					j = 0;
+					if (pass >= 2) {
+						winner = score(board);
+						free(board);
+						return (winner > 0) ? BLACK : WHITE;
+					}
 				}
+				else {
+					for (i = 0; i < GO_DIM * GO_DIM; i++) {
+						if (!is_bad_move(board, i, board->player)) {
+							pass = 0;
+							place(board, i, board->player);
+							board->player = -board->player;
+							break;
+						}
+					}
+				}
+				j = 0;
 			}
 
 			continue;
 		}
-		
+
+		pass = 0;
 		j = 0;
 		place(board, move, board->player);
 		board->player = -board->player;
-		i++;
 	}
 
 	free(board);
@@ -71,7 +83,12 @@ static int is_bad_move(struct go_board *board, int move, int player) {
 
 	adj = 0;
 	for (i = 0; i < 4; i++) {
-		if (get_color(board, get_adj(move, i)) == player || get_color(board, get_adj(move, i)) == INVAL) adj++;
+		if (get_color(board, get_adj(move, i)) == player || get_color(board, get_adj(move, i)) == INVAL) {
+			adj++;
+		}
+		if (get_libs(board, get_adj(move, i)) == 1) {
+			return 0;
+		}
 	}
 
 	if (adj == 4) {
@@ -81,44 +98,16 @@ static int is_bad_move(struct go_board *board, int move, int player) {
 	return 0;
 }
 
-/*static int is_finished(struct go_board *board) {
+static int can_play(struct go_board *board, int player) {
 	int i;
 
-	for (i = 0; i < 361; i++) {
-		if (!is_bad_move(board, i, board->player)) {
-			return 0;
-		}
-	}
-
-	return 1;
-}*/
-
-static int score(struct go_board *board) {
-	int i, w, b;
-
-	w = b = 0;
 	for (i = 0; i < GO_DIM * GO_DIM; i++) {
-		if (get_color(board, i) == WHITE) {
-			w++;
-		}
-		if (get_color(board, i) == BLACK) {
-			b++;
-		}
-		if (get_color(board, i) == EMPTY) {
-			for (int j = 0; j < 4; j++) {
-				if (get_color(board, get_adj(i, j)) == WHITE) {
-					w++;
-					break;
-				}
-				if (get_color(board, get_adj(i, j)) == BLACK) {
-					b++;
-					break;
-				}
-			}
+		if (!is_bad_move(board, i, player)) {
+			return 1;
 		}
 	}
 
-	return (b - w);
+	return 0;
 }
 
 double winrate(const struct go_board *board, int player, int tries) {

@@ -26,7 +26,7 @@
 #define EMPTY 0
 #define INVAL 2
 
-#define GO_DIM 7
+#define GO_DIM 9
 
 struct go_piece {
 	int16_t group;
@@ -39,6 +39,7 @@ struct go_board {
 	struct go_piece pos[GO_DIM * GO_DIM];
 	int ko;
 	int player;
+	int last;
 };
 
 struct go_board *new_board  (void);
@@ -53,6 +54,7 @@ int get_adj(int pos, int dir);
 
 int place(struct go_board *board, int pos, int player);
 int check(struct go_board *board, int pos, int player);
+int score(struct go_board *board);
 
 void print(struct go_board *board);
 

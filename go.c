@@ -62,22 +62,6 @@ struct go_board *clone_board(const struct go_board *board) {
 	return new;
 }
 
-void fix_board(struct go_board *board) {
-	int i, j;
-
-	for (i = 0; i < 361; i++) {
-		board->pos[i].libs = 0;
-	}
-
-	for (i = 0; i < 361; i++) {
-		if (board->pos[i].color == EMPTY) {
-			for (j = 0; j < 4; j++) {
-				add_libs(board, get_adj(i, j), 1);
-			}
-		}
-	}
-}
-
 int get_pos(int x, int y) {
 	
 	// bounds check
@@ -130,6 +114,8 @@ int place(struct go_board *board, int pos, int player) {
 			board->ko = PASS;
 		}
 	}
+
+	board->last = pos;
 
 	return 0;
 }
@@ -340,4 +326,30 @@ int get_color(const struct go_board *board, int pos) {
 	}
 
 	return board->pos[pos].color;
+}
+
+int score(struct go_board *board) {
+	int b, w, i, j;
+
+	b = 0;
+	w = 0;
+	for (i = 0; i < GO_DIM * GO_DIM; i++) {
+		switch (get_color(board, i)) {
+		case WHITE: w++; break;
+		case BLACK: b++; break;
+		case EMPTY:
+			for (j = 0; j < 4; j++) {
+				if (get_color(board, get_adj(i, j)) == BLACK) {
+					b++;
+					break;
+				}
+				else if (get_color(board, get_adj(i, j)) == WHITE) {
+					w++;
+					break;
+				}
+			}
+		}
+	}
+
+	return (b - w);
 }

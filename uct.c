@@ -24,7 +24,7 @@
 // Split at N plays
 #define N (GO_DIM * GO_DIM)
 
-#define CONF .1
+#define CONF .02
 
 #define ERR(s, n, p) (CONF * (log(s) / log(N)) * sqrt((p) * (1.0 - (p)) / (n)))
 
