@@ -14,40 +14,26 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef UCT_H
-#define UCT_H
+#ifndef PATTERN_H
+#define PATTERN_H
 
 #include "go.h"
 
-struct uct_node {
-	struct go_board *state;
+#include <stdio.h>
 
-	int move;
-	int player;
-	int wins;
-	int plays;
-	int valid;
+/* weighting ****************************************************************/
 
-	struct uct_node *child[GO_DIM * GO_DIM];
-	struct uct_node *parent;
-};
+void weight_add(double *w, double *w2, double factor);
+int  weight_sel(double *w);
 
-struct uct_node *new_uct(const struct go_board *state);
-void free_uct(struct uct_node *uct);
+/* pattern matching *********************************************************/
 
-double uct_ucb(struct uct_node *uct);
-double uct_lcb(struct uct_node *uct);
-double uct_rate(struct uct_node *uct);
+void     pattern_init  (void);
+void     pattern_load  (FILE *file);
+void     pattern_save  (FILE *file);
 
-int uct_best_lcb(struct uct_node *uct);
-int uct_best_ucb(struct uct_node *uct);
-int uct_best_rate(struct uct_node *uct);
+uint16_t pattern_at    (const struct go_board *board, int pos, int player);
+double   pattern_value (uint16_t pattern);
+void     pattern_reward(uint16_t pattern, double value);
 
-double uct_eval_rate(struct uct_node *uct, int move);
-
-int uct_play(struct uct_node *uct, int quantum);
-int uct_list(struct uct_node *uct);
-
-int uct_reward_patterns(struct uct_node *uct);
-
-#endif/*UCT_H*/
+#endif/*PATTERN_H*/

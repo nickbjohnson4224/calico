@@ -17,6 +17,7 @@
 #include "go.h"
 #include "uct.h"
 #include "playout.h"
+#include "pattern.h"
 
 #include <stdlib.h>
 #include <ctype.h>
@@ -105,34 +106,66 @@ int main(void) {
 	int x, y, i;
 	int best_move;
 	double rate;
+	FILE *patterns;
+
+//	patterns = fopen("patterns.txt", "r+");
+//	if (patterns) {
+//		pattern_load(patterns);
+//	}
+//	else {
+//		pattern_init();
+//	}
+//	fclose(patterns);
 
 	board = new_board();
 
 	srand(time(NULL));
+
+	pattern_init();
+
 	while (1) {
 
 		board->player = BLACK;
 
 		uct = new_uct(board);
-		for (i = 0; i < 10000; i++) {
+		for (i = 0; i < 1000; i++) {
 			uct_play(uct, 1);
 		}
 
 		best_move = uct_best_rate(uct);
 		rate = uct_eval_rate(uct, best_move);
+		uct_reward_patterns(uct);
 		uct_list(uct);
 		free_uct(uct);
+
+		for (y = GO_DIM; y > 0; y--) {
+			for (x = 1; x <= GO_DIM; x++) {
+				printf("%04f\t", pattern_value(pattern_at(board, get_pos(x, y), BLACK)));
+			}
+			printf("\n");
+		}
 
 		if (rate < .2) {
 			printf("black's move: resign");
 			print(board);
 			return 0;
 		}
+		
+		pattern_reward(pattern_at(board, best_move, BLACK), 10.0);
 
 		place(board, best_move, BLACK);
 		printf("black's move: %d\n", best_move);
 
 		print(board);
+
+		patterns = fopen("patterns.txt", "r+");
+		if (patterns) {
+			pattern_save(patterns);
+		}
+		else {
+			fprintf(stderr, "error: could not open pattern file for writing\n");
+		}
+		fclose(patterns);
 
 		board->player = WHITE;
 
@@ -141,6 +174,8 @@ int main(void) {
 			read_move(&x, &y);
 
 			if (!check(board, get_pos(x, y), WHITE)) {
+				pattern_reward(pattern_at(board, get_pos(x, y), WHITE), 10.0);
+
 				place(board, get_pos(x, y), WHITE);
 				print(board);
 				break;

@@ -15,6 +15,7 @@
  */
 
 #include "playout.h"
+#include "pattern.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -24,15 +25,21 @@ static int can_play(struct go_board *board, int player);
 
 int playout(const struct go_board *board_init) {
 	struct go_board *board;
-	int i, j, move, winner, pass;
+	double weight[GO_DIM * GO_DIM];
+	int i, j, move, winner, pass, k;
 
 	board = clone_board(board_init);
+	
+	for (k = 0; k < GO_DIM * GO_DIM; k++) {
+		weight[k] = pattern_value(pattern_at(board, k, board->player));
+	}
 
 	i = 0;
 	j = 0;
 	pass = 0;
 	while (1) {
-		move = rand() % (GO_DIM * GO_DIM);
+//		move = rand() % (GO_DIM * GO_DIM);
+		move = weight_sel(weight);
 
 		if (is_bad_move(board, move, board->player)) {
 			j++;
@@ -68,6 +75,10 @@ int playout(const struct go_board *board_init) {
 		j = 0;
 		place(board, move, board->player);
 		board->player = -board->player;
+
+		for (k = 0; k < GO_DIM * GO_DIM; k++) {
+			weight[k] = pattern_value(pattern_at(board, k, board->player));
+		}
 	}
 
 	free(board);
