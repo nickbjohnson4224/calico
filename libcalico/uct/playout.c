@@ -14,8 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "playout.h"
-#include "pattern.h"
+#include <playout.h>
+#include <pattern.h>
 
 #include <stdlib.h>
 #include <stdio.h>

@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "pattern.h"
+#include <pattern.h>
 
 #include <stdlib.h>
 #include <math.h>
@@ -29,7 +29,9 @@ void pattern_save(FILE *file) {
 	fprintf(file, "%f\n", total_weight);
 
 	for (i = 0; i < 65536; i++) {
-		fprintf(file, "0x%x %f\n", i, pattern_weight[i]);
+		if (pattern_weight[i] != 0.0) {
+			fprintf(file, "0x%x\t%f\n", i, pattern_weight[i]);
+		}
 	}
 }
 
@@ -84,6 +86,10 @@ uint16_t pattern_at(const struct go_board *board, int pos, int player) {
 	x = (pos % GO_DIM) + 1;
 	y = (pos / GO_DIM) + 1;
 
+	if (get_color(board, get_pos(x, y)) != EMPTY) {
+		return -1;
+	}
+
 	adj[0] = color_code(get_color(board, get_pos(x+1, y+0)), player);
 	adj[1] = color_code(get_color(board, get_pos(x+1, y+1)), player);
 	adj[2] = color_code(get_color(board, get_pos(x+0, y+1)), player);
@@ -101,7 +107,8 @@ uint16_t pattern_at(const struct go_board *board, int pos, int player) {
 	return pattern;
 }
 
-double pattern_value(uint16_t pattern) {	
+double pattern_value(uint16_t pattern) {
+	if (pattern == -1) return 0.0;
 	return atan(pattern_weight[pattern] / (total_weight / 65536.0)) + 2.0;
 }
 

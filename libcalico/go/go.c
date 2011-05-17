@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "go.h"
+#include <go.h>
 
 #include <stdint.h>
 #include <stdlib.h>

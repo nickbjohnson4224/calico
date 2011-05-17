@@ -5,6 +5,7 @@ CFLAGS  := -Wall -Wextra -Werror -pedantic -std=c99
 CFLAGS	+= -pipe
 CFLAGS	+= -fomit-frame-pointer -O3
 CFLAGS	+= -g
+CFLAGS	+= -I$(PWD)/libcalico/inc
 
 all: calico $(SOURCES) $(HEADERS)
 

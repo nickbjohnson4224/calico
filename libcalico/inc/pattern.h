@@ -14,13 +14,26 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef PLAYOUT_H
-#define PLAYOUT_H
+#ifndef PATTERN_H
+#define PATTERN_H
 
-#include "go.h"
+#include <go.h>
 
-int playout(const struct go_board *board);
+#include <stdio.h>
 
-double winrate(const struct go_board *board, int player, int tries);
+/* weighting ****************************************************************/
 
-#endif/*PLAYOUT_H*/
+void weight_add(double *w, double *w2, double factor);
+int  weight_sel(double *w);
+
+/* pattern matching *********************************************************/
+
+void     pattern_init  (void);
+void     pattern_load  (FILE *file);
+void     pattern_save  (FILE *file);
+
+uint16_t pattern_at    (const struct go_board *board, int pos, int player);
+double   pattern_value (uint16_t pattern);
+void     pattern_reward(uint16_t pattern, double value);
+
+#endif/*PATTERN_H*/

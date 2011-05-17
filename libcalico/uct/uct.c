@@ -15,8 +15,8 @@
  */
 
 #include "uct.h"
-#include "playout.h"
-#include "pattern.h"
+#include <playout.h>
+#include <pattern.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -209,8 +209,9 @@ int uct_reward_patterns(struct uct_node *uct) {
 	int i;
 
 	for (i = 0; i < GO_DIM * GO_DIM; i++) {
-		if (uct->child[i]) {
-			pattern_reward(pattern_at(uct->state, i, uct->player), uct_ucb(uct->child[i]) - .5);
+		if (uct->child[i] && uct->child[i]->valid) {
+			pattern_reward(pattern_at(uct->state, i, uct->player), 
+				(uct_rate(uct->child[i]) - .5) * sqrt(fabs(uct_rate(uct->child[i]) - .5)));
 		}
 	}
 

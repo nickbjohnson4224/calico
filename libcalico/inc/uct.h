@@ -17,7 +17,7 @@
 #ifndef UCT_H
 #define UCT_H
 
-#include "go.h"
+#include <go.h>
 
 struct uct_node {
 	struct go_board *state;

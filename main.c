@@ -14,10 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include "go.h"
+#include <go.h>
 #include "uct.h"
-#include "playout.h"
-#include "pattern.h"
+#include <playout.h>
+#include <pattern.h>
 
 #include <stdlib.h>
 #include <ctype.h>
@@ -108,14 +108,14 @@ int main(void) {
 	double rate;
 	FILE *patterns;
 
-//	patterns = fopen("patterns.txt", "r+");
-//	if (patterns) {
-//		pattern_load(patterns);
-//	}
-//	else {
-//		pattern_init();
-//	}
-//	fclose(patterns);
+	patterns = fopen("patterns.txt", "r+");
+	if (patterns) {
+		pattern_load(patterns);
+	}
+	else {
+		pattern_init();
+	}
+	fclose(patterns);
 
 	board = new_board();
 
@@ -150,8 +150,6 @@ int main(void) {
 			print(board);
 			return 0;
 		}
-		
-		pattern_reward(pattern_at(board, best_move, BLACK), 10.0);
 
 		place(board, best_move, BLACK);
 		printf("black's move: %d\n", best_move);
@@ -174,8 +172,6 @@ int main(void) {
 			read_move(&x, &y);
 
 			if (!check(board, get_pos(x, y), WHITE)) {
-				pattern_reward(pattern_at(board, get_pos(x, y), WHITE), 10.0);
-
 				place(board, get_pos(x, y), WHITE);
 				print(board);
 				break;
