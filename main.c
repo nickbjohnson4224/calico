@@ -14,17 +14,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <go.h>
-#include "uct.h"
-#include <playout.h>
-#include <pattern.h>
+#include <calico.h>
 
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <time.h>
 
-void print(struct go_board *board) {
+void go_print(struct go_board *board) {
 	int x, y;
 	int libs;
 	const char *letters = " ABCDEFGHJKLMNOPQRST";
@@ -38,18 +35,18 @@ void print(struct go_board *board) {
 	for (y = GO_DIM; y > 0; y--) {
 		printf(" %2d", y);
 
-		if (board->last == get_pos(1, y)) {
+		if (board->last == go_get_pos(1, y)) {
 			printf("[");
 		}
 		else printf(" ");
 
 		for (x = 1; x <= GO_DIM; x++) {
 			
-			libs = get_libs(board, get_pos(x, y));
-			if (get_color(board, get_pos(x, y)) == WHITE) {
+			libs = go_get_libs(board, go_get_pos(x, y));
+			if (go_get_color(board, go_get_pos(x, y)) == WHITE) {
 				printf("O");
 			}
-			else if (get_color(board, get_pos(x, y)) == BLACK) {
+			else if (go_get_color(board, go_get_pos(x, y)) == BLACK) {
 				printf("#");	
 			}
 			else {
@@ -61,10 +58,10 @@ void print(struct go_board *board) {
 				}
 			}
 
-			if (board->last == get_pos(x, y)) {
+			if (board->last == go_get_pos(x, y)) {
 				printf("]");
 			}
-			else if (board->last == get_pos(x + 1, y)) {
+			else if (board->last == go_get_pos(x + 1, y)) {
 				printf("[");
 			}
 			else printf(" ");
@@ -108,27 +105,28 @@ int main(void) {
 	double rate;
 	FILE *patterns;
 
-	patterns = fopen("patterns.txt", "r+");
+	patterns = fopen("patterns.txt", "r");
 	if (patterns) {
 		pattern_load(patterns);
 	}
 	else {
+		fprintf(stderr, "warning: no pattern file\n");
 		pattern_init();
 	}
 	fclose(patterns);
 
-	board = new_board();
+	printf("pattern file loaded.\n");
+
+	board = go_new();
 
 	srand(time(NULL));
-
-	pattern_init();
 
 	while (1) {
 
 		board->player = BLACK;
 
 		uct = new_uct(board);
-		for (i = 0; i < 1000; i++) {
+		for (i = 0; i < 2000; i++) {
 			uct_play(uct, 1);
 		}
 
@@ -138,25 +136,18 @@ int main(void) {
 		uct_list(uct);
 		free_uct(uct);
 
-		for (y = GO_DIM; y > 0; y--) {
-			for (x = 1; x <= GO_DIM; x++) {
-				printf("%04f\t", pattern_value(pattern_at(board, get_pos(x, y), BLACK)));
-			}
-			printf("\n");
-		}
-
 		if (rate < .2) {
 			printf("black's move: resign");
-			print(board);
+			go_print(board);
 			return 0;
 		}
 
-		place(board, best_move, BLACK);
+		go_place(board, best_move, BLACK);
 		printf("black's move: %d\n", best_move);
 
-		print(board);
+		go_print(board);
 
-		patterns = fopen("patterns.txt", "r+");
+		patterns = fopen("patterns.txt", "w+");
 		if (patterns) {
 			pattern_save(patterns);
 		}
@@ -171,9 +162,9 @@ int main(void) {
 			printf("enter a move: ");
 			read_move(&x, &y);
 
-			if (!check(board, get_pos(x, y), WHITE)) {
-				place(board, get_pos(x, y), WHITE);
-				print(board);
+			if (!go_check(board, go_get_pos(x, y), WHITE)) {
+				go_place(board, go_get_pos(x, y), WHITE);
+				go_print(board);
 				break;
 			}
 			else {

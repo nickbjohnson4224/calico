@@ -14,8 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <playout.h>
-#include <pattern.h>
+#include <calico.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -28,17 +27,16 @@ int playout(const struct go_board *board_init) {
 	double weight[GO_DIM * GO_DIM];
 	int i, j, move, winner, pass, k;
 
-	board = clone_board(board_init);
+	board = go_clone(board_init);
 	
 	for (k = 0; k < GO_DIM * GO_DIM; k++) {
-		weight[k] = pattern_value(pattern_at(board, k, board->player));
+		weight[k] = pattern_value(board, k, board->player);
 	}
 
 	i = 0;
 	j = 0;
 	pass = 0;
 	while (1) {
-//		move = rand() % (GO_DIM * GO_DIM);
 		move = weight_sel(weight);
 
 		if (is_bad_move(board, move, board->player)) {
@@ -50,7 +48,7 @@ int playout(const struct go_board *board_init) {
 					board->player = -board->player;
 					j = 0;
 					if (pass >= 2) {
-						winner = score(board);
+						winner = go_score(board);
 						free(board);
 						return (winner > 0) ? BLACK : WHITE;
 					}
@@ -59,7 +57,7 @@ int playout(const struct go_board *board_init) {
 					for (i = 0; i < GO_DIM * GO_DIM; i++) {
 						if (!is_bad_move(board, i, board->player)) {
 							pass = 0;
-							place(board, i, board->player);
+							go_place(board, i, board->player);
 							board->player = -board->player;
 							break;
 						}
@@ -73,11 +71,11 @@ int playout(const struct go_board *board_init) {
 
 		pass = 0;
 		j = 0;
-		place(board, move, board->player);
+		go_place(board, move, board->player);
 		board->player = -board->player;
 
 		for (k = 0; k < GO_DIM * GO_DIM; k++) {
-			weight[k] = pattern_value(pattern_at(board, k, board->player));
+			weight[k] = pattern_value(board, k, board->player);
 		}
 	}
 
@@ -88,16 +86,17 @@ int playout(const struct go_board *board_init) {
 static int is_bad_move(struct go_board *board, int move, int player) {
 	int adj, i;
 	
-	if (check(board, move, player)) {
+	if (go_check(board, move, player)) {
 		return 1;
 	}
 
 	adj = 0;
 	for (i = 0; i < 4; i++) {
-		if (get_color(board, get_adj(move, i)) == player || get_color(board, get_adj(move, i)) == INVAL) {
+		if (go_get_color(board, go_get_adj(move, i)) == player 
+				|| go_get_color(board, go_get_adj(move, i)) == INVAL) {
 			adj++;
 		}
-		if (get_libs(board, get_adj(move, i)) == 1) {
+		if (go_get_libs(board, go_get_adj(move, i)) == 1) {
 			return 0;
 		}
 	}

@@ -14,19 +14,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <pattern.h>
+#include <calico.h>
 
 #include <stdlib.h>
 #include <math.h>
 
 double pattern_weight[65536];
-double total_weight;
+double height_weight[GO_DIM / 2 + 2];
 
 void pattern_save(FILE *file) {
 	int i;
 	
 	fprintf(file, "PATTERN FILE\n");
-	fprintf(file, "%f\n", total_weight);
 
 	for (i = 0; i < 65536; i++) {
 		if (pattern_weight[i] != 0.0) {
@@ -36,18 +35,17 @@ void pattern_save(FILE *file) {
 }
 
 void pattern_load(FILE *file) {
-	int i, n;
 	double val;
+	int n;
+
+	char buffer[100];
 
 	pattern_init();
 
-	fscanf(file, "PATTERN FILE\n");
-	fscanf(file, "%f", &val);
+	fgets(buffer, 100, file);
 
-	total_weight = val;
-
-	for (i = 0; i < 65536; i++) {
-		fscanf(file, "%i %f", &n, &val);
+	while (fgets(buffer, 100, file)) {
+		sscanf(buffer, "%i %f", &n, &val);
 		pattern_weight[n] = val;
 	}
 }
@@ -59,7 +57,9 @@ void pattern_init(void) {
 		pattern_weight[i] = 0.0;
 	}
 
-	total_weight = 65536.0;
+	for (i = 0; i < GO_DIM / 2 + 1; i++) {
+		height_weight[i] = 0.0;
+	}
 }
 
 static int color_code(int color, int player) {
@@ -86,18 +86,18 @@ uint16_t pattern_at(const struct go_board *board, int pos, int player) {
 	x = (pos % GO_DIM) + 1;
 	y = (pos / GO_DIM) + 1;
 
-	if (get_color(board, get_pos(x, y)) != EMPTY) {
+	if (go_get_color(board, go_get_pos(x, y)) != EMPTY) {
 		return -1;
 	}
 
-	adj[0] = color_code(get_color(board, get_pos(x+1, y+0)), player);
-	adj[1] = color_code(get_color(board, get_pos(x+1, y+1)), player);
-	adj[2] = color_code(get_color(board, get_pos(x+0, y+1)), player);
-	adj[3] = color_code(get_color(board, get_pos(x-1, y+1)), player);
-	adj[4] = color_code(get_color(board, get_pos(x-1, y+0)), player);
-	adj[5] = color_code(get_color(board, get_pos(x-1, y-1)), player);
-	adj[6] = color_code(get_color(board, get_pos(x+0, y-1)), player);
-	adj[7] = color_code(get_color(board, get_pos(x+1, y-1)), player);
+	adj[0] = color_code(go_get_color(board, go_get_pos(x+1, y+0)), player);
+	adj[1] = color_code(go_get_color(board, go_get_pos(x+1, y+1)), player);
+	adj[2] = color_code(go_get_color(board, go_get_pos(x+0, y+1)), player);
+	adj[3] = color_code(go_get_color(board, go_get_pos(x-1, y+1)), player);
+	adj[4] = color_code(go_get_color(board, go_get_pos(x-1, y+0)), player);
+	adj[5] = color_code(go_get_color(board, go_get_pos(x-1, y-1)), player);
+	adj[6] = color_code(go_get_color(board, go_get_pos(x+0, y-1)), player);
+	adj[7] = color_code(go_get_color(board, go_get_pos(x+1, y-1)), player);
 
 	pattern = 0;
 	for (i = 0; i < 8; i++) {
@@ -107,13 +107,45 @@ uint16_t pattern_at(const struct go_board *board, int pos, int player) {
 	return pattern;
 }
 
-double pattern_value(uint16_t pattern) {
-	if (pattern == -1) return 0.0;
-	return atan(pattern_weight[pattern] / (total_weight / 65536.0)) + 2.0;
+int height_at(int pos) {
+	int height, x, y;
+
+	x = (pos % GO_DIM) + 1;
+	y = (pos / GO_DIM) + 1;
+
+	if (x > GO_DIM / 2) x = GO_DIM - x + 1;
+	if (y > GO_DIM / 2) y = GO_DIM - y + 1;
+	height = (x < y) ? x : y;
+
+	return height;
 }
 
-void pattern_reward(uint16_t pattern, double value) {
+double pattern_value(const struct go_board *board, int pos, int player) {
+	uint16_t pattern;
+	double value;
+	int height;
+
+	pattern = pattern_at(board, pos, player);
+
+	if (pattern == -1) {
+		return 0.0;
+	}
+
+	height = height_at(pos);
+
+	value = 0;
+	value += pattern_weight[pattern];//(atan(pattern_weight[pattern]) / 3.1416) + .5;
+	value += height_weight[height];//(atan(height_weight[height]) / 3.1416) + .5;
+
+	return (value / 2.0);
+}
+
+void pattern_reward(const struct go_board *board, int pos, int player, double value) {
 	uint16_t rot0, rot1, rot2, rot3;
+	uint16_t pattern;
+	int height;
+
+	pattern = pattern_at(board, pos, player);
 
 	rot0 = pattern;
 	rot1 = ((pattern >> 4)  | (pattern << 12)) & 0xFFFF;
@@ -124,7 +156,10 @@ void pattern_reward(uint16_t pattern, double value) {
 	pattern_weight[rot1] += value;
 	pattern_weight[rot2] += value;
 	pattern_weight[rot3] += value;
-	total_weight += fabs(value) * 4.0;
+
+	height = height_at(pos);
+
+	height_weight[height] += value;
 }
 
 void weight_add(double *w, double *w2, double factor) {

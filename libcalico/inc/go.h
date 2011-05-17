@@ -14,19 +14,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef GO_H
-#define GO_H
+#ifndef CALICO_GO_H
+#define CALICO_GO_H
 
 #include <stdint.h>
 
-#define PASS (-1)
-
-#define WHITE (-1)
-#define BLACK 1
-#define EMPTY 0
-#define INVAL 2
-
-#define GO_DIM 9
+/* board representation *****************************************************/
 
 struct go_piece {
 	int16_t group;
@@ -42,20 +35,69 @@ struct go_board {
 	int last;
 };
 
-struct go_board *new_board  (void);
-struct go_board *clone_board(const struct go_board *board);
+/*****************************************************************************
+ * Colors
+ *
+ * Each constant represents a possible "color" of a position on the Go board.
+ * This represents, in general, which player has a piece at that position.
+ *
+ * WHITE - white, obviously
+ * BLACK - black, obviously
+ * EMPTY - no player
+ * INVAL - off of the board
+ *
+ * Notes:
+ *
+ * BLACK and WHITE are guaranteed to be additive inverses of each other, so
+ * that the opponent of a given player can be calculated with a simple
+ * negation. EMPTY is guaranteed to be zero.
+ *
+ * All four values are guaranteed to fit in a 8-bit signed integer.
+ */
 
-int get_pos(int x, int y);
-int get_color(const struct go_board *board, int pos);
-int get_libs(struct go_board *board, int pos);
+#define WHITE (-1)
+#define BLACK 1
+#define EMPTY 0
+#define INVAL 2
 
-int gen_adj(void);
-int get_adj(int pos, int dir);
+/*****************************************************************************
+ * PASS
+ *
+ * Represents a universally invalid move. This value is guaranteed to be an
+ * integer outside of the range [0, GO_DIM * GO_DIM].
+ */
 
-int place(struct go_board *board, int pos, int player);
-int check(struct go_board *board, int pos, int player);
-int score(struct go_board *board);
+#define PASS (-1)
 
-void print(struct go_board *board);
+/* board operations (board.c) ***********************************************/
+struct go_board *go_new  (void);
+struct go_board *go_clone(const struct go_board *board);
 
-#endif/*GO_H*/
+/* basic operations (go.c) **************************************************/
+int    go_get_pos  (int x, int y);
+int    go_get_color(const struct go_board *board, int pos);
+
+/* group operations (group.c) ***********************************************/
+int go_get_group    (struct go_board *board, int pos);
+int go_merge_group  (struct go_board *board, int g1, int g2);
+int go_capture_group(struct go_board *board, int pos);
+int go_get_libs     (struct go_board *board, int pos);
+int go_add_libs     (struct go_board *board, int pos, int value);
+
+/* adjacenct position calculation (adj.c) ***********************************/
+#define ADJ_R 0 // Right
+#define ADJ_U 1	// Up
+#define ADJ_L 2	// Left
+#define ADJ_D 3	// Down
+int go_gen_adj(void);
+int go_get_adj(int pos, int direction);
+
+/* rule application (rules.c) ***********************************************/
+int go_place(struct go_board *board, int pos, int player);
+int go_check(struct go_board *board, int pos, int player);
+int go_score(struct go_board *board);
+
+/* output and analysis (print.c) ********************************************/
+void go_print(struct go_board *board);
+
+#endif/*CALICO_GO_H*/

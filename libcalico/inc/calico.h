@@ -14,27 +14,23 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef PATTERN_H
-#define PATTERN_H
+#ifndef CALICO_H
+#define CALICO_H
+
+#include <stdint.h>
+
+/*****************************************************************************
+ * GO_DIM
+ *
+ * Side length of the Go board. Pretty straightforward. This affects almost
+ * all source files.
+ */
+
+#define GO_DIM 9
 
 #include <go.h>
+#include <playout.h>
+#include <pattern.h>
+#include <uct.h>
 
-#include <stdio.h>
-
-/* weighting ****************************************************************/
-
-void weight_add(double *w, double *w2, double factor);
-int  weight_sel(double *w);
-
-/* pattern matching *********************************************************/
-
-void     pattern_init  (void);
-void     pattern_load  (FILE *file);
-void     pattern_save  (FILE *file);
-
-int      height_at     (int pos);
-uint16_t pattern_at    (const struct go_board *board, int pos, int player);
-double   pattern_value (const struct go_board *board, int pos, int player);
-void     pattern_reward(const struct go_board *board, int pos, int player, double value);
-
-#endif/*PATTERN_H*/
+#endif/*CALICO_H*/
