@@ -37,7 +37,8 @@ int playout(const struct go_board *board_init) {
 	j = 0;
 	pass = 0;
 	while (1) {
-		move = weight_sel(weight);
+		move = rand() % (GO_DIM * GO_DIM);
+//		move = weight_sel(weight);
 
 		if (is_bad_move(board, move, board->player)) {
 			j++;

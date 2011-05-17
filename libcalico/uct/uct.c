@@ -23,9 +23,9 @@
 // Split at N plays
 #define N (GO_DIM * GO_DIM)
 
-#define CONF 1
+#define CONF .05
 
-#define ERR(s, n, p) (CONF * (log(s) / log(N)) * sqrt((p) * (1.0 - (p)) / (n)))
+#define ERR(s, n, p) (CONF * (log(s) / log(N)) * sqrt(1.0 / (n)))
 
 struct uct_node *new_uct(const struct go_board *state) {
 	struct uct_node *node;
@@ -223,7 +223,7 @@ int uct_reward_patterns(struct uct_node *uct) {
 
 	for (i = 0; i < GO_DIM * GO_DIM; i++) {
 		if (uct->child[i] && uct->child[i]->valid) {
-			pattern_reward(uct->state, i, uct->player, uct_rate(uct->child[i]));
+			pattern_reward(uct->state, i, uct->player, uct_rate(uct->child[i]) - avg);
 		}
 	}
 

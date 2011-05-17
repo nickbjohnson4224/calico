@@ -29,8 +29,8 @@ int  weight_sel(double *w);
 /* pattern matching *********************************************************/
 
 void     pattern_init  (void);
-void     pattern_load  (FILE *file);
-void     pattern_save  (FILE *file);
+void     pattern_load  (void);
+void     pattern_save  (void);
 
 int      height_at     (int pos);
 uint16_t pattern_at    (const struct go_board *board, int pos, int player);

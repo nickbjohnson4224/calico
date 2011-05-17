@@ -103,19 +103,8 @@ int main(void) {
 	int x, y, i;
 	int best_move;
 	double rate;
-	FILE *patterns;
 
-	patterns = fopen("patterns.txt", "r");
-	if (patterns) {
-		pattern_load(patterns);
-	}
-	else {
-		fprintf(stderr, "warning: no pattern file\n");
-		pattern_init();
-	}
-	fclose(patterns);
-
-	printf("pattern file loaded.\n");
+	pattern_load();
 
 	board = go_new();
 
@@ -147,14 +136,7 @@ int main(void) {
 
 		go_print(board);
 
-		patterns = fopen("patterns.txt", "w+");
-		if (patterns) {
-			pattern_save(patterns);
-		}
-		else {
-			fprintf(stderr, "error: could not open pattern file for writing\n");
-		}
-		fclose(patterns);
+		pattern_save();
 
 		board->player = WHITE;
 

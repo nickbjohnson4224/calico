@@ -17,48 +17,69 @@
 #include <calico.h>
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 
 double pattern_weight[65536];
 double height_weight[GO_DIM / 2 + 2];
 
-void pattern_save(FILE *file) {
+void pattern_save() {
+	FILE *pfile, *hfile;
 	int i;
 	
-	fprintf(file, "PATTERN FILE\n");
+	pfile = fopen("patterns.txt", "w+");
+	hfile = fopen("heights.txt", "w+");
 
 	for (i = 0; i < 65536; i++) {
-		if (pattern_weight[i] != 0.0) {
-			fprintf(file, "0x%x\t%f\n", i, pattern_weight[i]);
+		if (pattern_weight[i] != 1.0) {
+			fprintf(pfile, "0x%x\t%f\n", i, pattern_weight[i]);
 		}
 	}
+
+	for (i = 0; i <= GO_DIM / 2 + 1; i++) {
+		if (height_weight[i] != 1.0) {
+			fprintf(hfile, "0x%x\t%f\n", i, height_weight[i]);
+		}
+	}
+
+	fclose(pfile);
+	fclose(hfile);
 }
 
-void pattern_load(FILE *file) {
+void pattern_load() {
+	FILE *pfile, *hfile;
+	char buffer[100];
 	double val;
 	int n;
-
-	char buffer[100];
+	
+	pfile = fopen("patterns.txt", "w+");
+	hfile = fopen("heights.txt", "w+");
 
 	pattern_init();
 
-	fgets(buffer, 100, file);
-
-	while (fgets(buffer, 100, file)) {
+	while (fgets(buffer, 100, pfile)) {
 		sscanf(buffer, "%i %f", &n, &val);
 		pattern_weight[n] = val;
 	}
+
+	while (fgets(buffer, 100, hfile)) {
+		sscanf(buffer, "%i %f", &n, &val);
+		height_weight[n] = val;
+	}
+
+	fclose(pfile);
+	fclose(hfile);
 }
 
 void pattern_init(void) {
 	int i;
 
 	for (i = 0; i < 65536; i++) {
-		pattern_weight[i] = 0.0;
+		pattern_weight[i] = 1.0;
 	}
 
-	for (i = 0; i < GO_DIM / 2 + 1; i++) {
-		height_weight[i] = 0.0;
+	for (i = 0; i <= GO_DIM / 2 + 1; i++) {
+		height_weight[i] = 1.0;
 	}
 }
 
@@ -137,7 +158,7 @@ double pattern_value(const struct go_board *board, int pos, int player) {
 	value += pattern_weight[pattern];//(atan(pattern_weight[pattern]) / 3.1416) + .5;
 	value += height_weight[height];//(atan(height_weight[height]) / 3.1416) + .5;
 
-	return (value / 2.0);
+	return exp(value / 2.0);
 }
 
 void pattern_reward(const struct go_board *board, int pos, int player, double value) {
