@@ -23,16 +23,15 @@
 // Split at N plays
 #define N (GO_DIM * GO_DIM)
 
-#define CONF .05
+#define CONF .1
 
-#define ERR(s, n, p) (CONF * (log(s) / log(N)) * sqrt(1.0 / (n)))
+#define ERR(s, n, p) (CONF * (log((s) + 1) / log((N) + 1)) * sqrt(((p) * (1.0 - (p))) / (n)))
 
 struct uct_node *new_uct(const struct go_board *state) {
 	struct uct_node *node;
 
 	node = calloc(sizeof(struct uct_node), 1);
 	node->state = go_clone(state);
-	node->player = state->player;
 
 	return node;
 }
@@ -54,12 +53,20 @@ void free_uct(struct uct_node *uct) {
 double uct_ucb(struct uct_node *uct) {
 	double winrate;
 
-	if (!uct || uct->plays == 0) {
+	if (!uct) {
 		return 2.0;
 	}
 
 	if (!uct->valid) {
 		return -1.0;
+	}
+
+	if (uct->plays == 0) {
+		return 2.0;
+	}
+	
+	if (uct->wins == 0) {
+		return 1.0;
 	}
 
 	winrate = (double) (uct->wins) / (uct->plays);
@@ -150,7 +157,7 @@ int uct_best_rate(struct uct_node *uct) {
 	return best_move;
 }
 
-int uct_play(struct uct_node *uct, int quantum) {
+int uct_play(struct uct_node *uct) {
 	int move;
 	
 	while (1) {
@@ -163,7 +170,6 @@ int uct_play(struct uct_node *uct, int quantum) {
 			if (!go_check(uct->child[move]->state, move, uct->state->player)) {
 				go_place(uct->child[move]->state, move, uct->state->player);
 				uct->child[move]->state->player = -uct->state->player;
-				uct->child[move]->player = -uct->state->player;
 				uct->child[move]->valid = 1;
 			}
 			else {
@@ -172,18 +178,97 @@ int uct_play(struct uct_node *uct, int quantum) {
 			}
 		}
 
-		for (int i = 0; i < quantum; i++) {
-			if (playout(uct->child[move]->state) == -uct->child[move]->player) {
-				uct->child[move]->wins++;
-			}
-			uct->child[move]->plays++;
-			uct->plays++;
-		}
-
 		break;
 	}
 
+	if (playout(uct->child[move]->state) == -uct->child[move]->state->player) {
+		uct->child[move]->wins++;
+	}
+	uct->child[move]->plays++;
+	uct->plays++;
+
 	return 0;
+}
+
+static int uct_new_child(struct uct_node *parent, int move) {
+	
+	if (parent->child[move]) {
+		return 1;
+	}
+
+	parent->child[move] = new_uct(parent->state);
+	parent->child[move]->parent = parent;
+
+	if (!go_check(parent->child[move]->state, move, parent->state->player)) {
+		go_place(parent->child[move]->state, move, parent->state->player);
+		parent->child[move]->state->player = -parent->state->player;
+		parent->child[move]->valid = 1;
+		return 0;
+	}
+	else {
+		parent->child[move]->valid = 0;
+		return 0;
+	}
+}
+
+int uct_playout(struct uct_node *root) {
+	int move;
+	int winner;
+
+	if (!root || !root->valid) {
+		return EMPTY;
+	}
+
+	while (1) {
+		// select move to try
+		move = uct_best_ucb(root);
+
+		if (root->child[move]) {
+			// child already exists
+
+			if (root->child[move]->valid) {
+				// valid move: recurse
+				winner = uct_playout(root->child[move]);
+
+				if (winner == -root->state->player) {
+					root->wins++;
+				}
+				root->plays++;
+
+				return winner;
+			}
+			else {
+				// invalid move: retry
+				continue;
+			}
+		}
+		else {
+			// child does not exist: create
+			uct_new_child(root, move);
+
+			if (root->child[move]->valid) {
+				// valid move: playout
+				
+				winner = playout(root->child[move]->state);
+				
+				if (winner == -root->child[move]->state->player) {
+					root->child[move]->wins++;
+				}
+				root->child[move]->plays++;
+
+				if (winner == -root->state->player) {
+					root->wins++;
+				}
+				root->plays++;
+				
+				return winner;
+			}
+			else {
+				// invalid move: retry
+				continue;
+			}
+		}
+	}
 }
 
 int uct_list(struct uct_node *uct) {

@@ -57,8 +57,9 @@ int main(void) {
 		board->player = BLACK;
 
 		uct = new_uct(board);
-		for (i = 0; i < 2000; i++) {
-			uct_play(uct, 1);
+		uct->valid = 1;
+		for (i = 0; i < 10000; i++) {
+			uct_playout(uct);
 		}
 
 		best_move = uct_best_rate(uct);

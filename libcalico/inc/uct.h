@@ -23,7 +23,6 @@ struct uct_node {
 	struct go_board *state;
 
 	int move;
-	int player;
 	int wins;
 	int plays;
 	int valid;
@@ -45,7 +44,9 @@ int uct_best_rate(struct uct_node *uct);
 
 double uct_eval_rate(struct uct_node *uct, int move);
 
-int uct_play(struct uct_node *uct, int quantum);
+int uct_playout(struct uct_node *root);
+
+int uct_play(struct uct_node *uct);
 int uct_list(struct uct_node *uct);
 
 int uct_reward_patterns(struct uct_node *uct);
