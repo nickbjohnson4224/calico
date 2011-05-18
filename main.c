@@ -21,62 +21,6 @@
 #include <stdio.h>
 #include <time.h>
 
-void go_print(struct go_board *board) {
-	int x, y;
-	int libs;
-	const char *letters = " ABCDEFGHJKLMNOPQRST";
-
-	printf("\n    ");
-	for (x = 1; x <= GO_DIM; x++) {
-		printf("%c ", letters[x]);
-	}
-	printf("\n");
-
-	for (y = GO_DIM; y > 0; y--) {
-		printf(" %2d", y);
-
-		if (board->last == go_get_pos(1, y)) {
-			printf("[");
-		}
-		else printf(" ");
-
-		for (x = 1; x <= GO_DIM; x++) {
-			
-			libs = go_get_libs(board, go_get_pos(x, y));
-			if (go_get_color(board, go_get_pos(x, y)) == WHITE) {
-				printf("O");
-			}
-			else if (go_get_color(board, go_get_pos(x, y)) == BLACK) {
-				printf("#");	
-			}
-			else {
-				if ((x - 3) % 6 == 1 && (y - 3) % 6 == 1) {
-					printf("+");
-				}
-				else {
-					printf("-");
-				}
-			}
-
-			if (board->last == go_get_pos(x, y)) {
-				printf("]");
-			}
-			else if (board->last == go_get_pos(x + 1, y)) {
-				printf("[");
-			}
-			else printf(" ");
-		}
-
-		printf("%-2d\n", y);
-	}
-
-	printf("    ");
-	for (x = 1; x <= GO_DIM; x++) {
-		printf("%c ", letters[x]);
-	}
-	printf("\n\n");
-}
-
 int read_move(int *x, int *y) {
 	char buffer[100];
 	char letter;
