@@ -1,4 +1,4 @@
-SOURCES := $(patsubst %.c,%.o,$(shell find . -name "*.c"))
+SOURCES := $(patsubst %.c,%.o,$(shell find . -mindepth 2 -name "*.c"))
 HEADERS := $(shell find . -name "*.h")
 
 CFLAGS  := -Wall -Wextra -Werror -pedantic -std=c99
@@ -7,11 +7,19 @@ CFLAGS	+= -fomit-frame-pointer -O3
 CFLAGS	+= -g
 CFLAGS	+= -I$(PWD)/libcalico/inc
 
-all: calico $(SOURCES) $(HEADERS)
+all: calico-learn calico libcalico.a $(SOURCES) $(HEADERS)
 
-calico: $(SOURCES) $(HEADERS)
-	@ echo " LD	" $(SOURCES)
-	@ clang $(SOURCES) -o calico -lm
+calico-learn: libcalico.a learn.o
+	@ echo " LD	" libcalico.a learn.o
+	@ clang $(CFLAGS) -o calico-learn learn.o libcalico.a -lm
+
+calico: libcalico.a main.o
+	@ echo " LD	" libcalico.a main.o
+	@ clang $(CFLAGS) -o calico main.o libcalico.a -lm
+
+libcalico.a: $(SOURCES) $(HEADERS)
+	@ echo " AR	" $(SOURCES)
+	@ ar rcs libcalico.a $(SOURCES)
 
 %.o: %.c $(HEADERS)
 	@ echo " CC	" $<

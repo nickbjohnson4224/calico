@@ -17,7 +17,7 @@
 #ifndef PATTERN_H
 #define PATTERN_H
 
-#include <go.h>
+#include <calico.h>
 
 #include <stdio.h>
 
@@ -26,7 +26,7 @@
 void weight_add(double *w, double *w2, double factor);
 int  weight_sel(double *w);
 
-/* pattern matching *********************************************************/
+/* pattern matching (3x3) ***************************************************/
 
 void     pattern_init  (void);
 void     pattern_load  (void);
@@ -36,5 +36,39 @@ int      height_at     (int pos);
 uint16_t pattern_at    (const struct go_board *board, int pos, int player);
 double   pattern_value (const struct go_board *board, int pos, int player);
 void     pattern_reward(const struct go_board *board, int pos, int player, double value);
+
+/* general pattern matching API *********************************************/
+
+typedef int (*pat_matcher)(const struct go_board *board, int move, int player);
+
+struct pat_weight {
+	int count;
+	double *weight;
+};
+
+struct mdist *pat_gen_mdist(const struct go_board *board, 
+	int player, struct pat_weight *w, pat_matcher p);
+
+struct pat_weight *pat_weight_reward(struct pat_weight *w, int pattern, double value);
+void pat_weight_save(struct pat_weight *w, const char *path);
+void pat_weight_load(struct pat_weight **w, const char *path);
+
+/* move distributions *******************************************************/
+
+struct mdist {
+	double value[GO_DIM * GO_DIM];
+	double total;
+};
+
+void mdist_add(struct mdist *dest, struct mdist *src, double factor);
+int  mdist_sel(struct mdist *m);
+
+/* specific pattern matchers ************************************************/
+
+int neighbor_matcher(const struct go_board *board, int move, int player);
+int height_matcher  (const struct go_board *board, int move, int player);
+int distance_matcher(const struct go_board *board, int move, int player);
+int atari_matcher   (const struct go_board *board, int move, int player);
+int region_matcher  (const struct go_board *board, int move, int player);
 
 #endif/*PATTERN_H*/
