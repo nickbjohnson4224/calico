@@ -21,22 +21,6 @@
 
 #include <stdio.h>
 
-/* weighting ****************************************************************/
-
-void weight_add(double *w, double *w2, double factor);
-int  weight_sel(double *w);
-
-/* pattern matching (3x3) ***************************************************/
-
-void     pattern_init  (void);
-void     pattern_load  (void);
-void     pattern_save  (void);
-
-int      height_at     (int pos);
-uint16_t pattern_at    (const struct go_board *board, int pos, int player);
-double   pattern_value (const struct go_board *board, int pos, int player);
-void     pattern_reward(const struct go_board *board, int pos, int player, double value);
-
 /* general pattern matching API *********************************************/
 
 typedef int (*pat_matcher)(const struct go_board *board, int move, int player);

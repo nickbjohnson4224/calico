@@ -204,28 +204,3 @@ int uct_list(struct uct_node *uct) {
 double uct_eval_rate(struct uct_node *uct, int move) {
 	return uct_rate(uct->child[move]);
 }
-
-int uct_reward_patterns(struct uct_node *uct) {
-	double avg;
-	int i;
-	int count;
-
-	avg = 0.0;
-	count = 0;
-	for (i = 0; i < GO_DIM * GO_DIM; i++) {
-		if (uct->child[i] && uct->child[i]->valid) {
-			avg += uct_rate(uct->child[i]);
-			count++;
-		}
-	}
-
-	avg /= (double) count;
-
-	for (i = 0; i < GO_DIM * GO_DIM; i++) {
-		if (uct->child[i] && uct->child[i]->valid) {
-			pattern_reward(uct->state, i, uct->player, uct_rate(uct->child[i]) - avg);
-		}
-	}
-
-	return 0;
-}
