@@ -14,23 +14,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef CALICO_H
-#define CALICO_H
+#include <calico.h>
 
-#include <stdint.h>
+int height_matcher(const struct go_board *board, int move, int player) {
+	int x, y;
 
-/*****************************************************************************
- * GO_DIM
- *
- * Side length of the Go board. Pretty straightforward. This affects almost
- * all source files.
- */
+	x = (move % GO_DIM) + 1;
+	y = (move / GO_DIM) + 1;
 
-#define GO_DIM 9
+	if (x > GO_DIM / 2 + 1) x = GO_DIM - x;
+	if (y > GO_DIM / 2 + 1) y = GO_DIM - y;
 
-#include <go.h>
-#include <pattern.h>
-#include <playout.h>
-#include <uct.h>
-
-#endif/*CALICO_H*/
+	return (x < y) ? x : y;
+}

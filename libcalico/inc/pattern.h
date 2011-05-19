@@ -37,6 +37,8 @@ struct pat_weight *pat_weight_reward(struct pat_weight *w, int pattern, double v
 void pat_weight_save(struct pat_weight *w, const char *path);
 void pat_weight_load(struct pat_weight **w, const char *path);
 
+void pat_weight_list(struct pat_weight *w);
+
 /* move distributions *******************************************************/
 
 struct mdist {

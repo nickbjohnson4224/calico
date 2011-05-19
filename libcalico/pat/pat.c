@@ -51,11 +51,11 @@ struct pat_weight *pat_weight_reward(struct pat_weight *w, int pattern, double v
 	}
 
 	if (pattern >= w->count) {
-		w->weight = realloc(w->weight, sizeof(double) * pattern);
+		w->weight = realloc(w->weight, sizeof(double) * (pattern + 1));
 		for (i = w->count; i <= pattern; i++) {
 			w->weight[i] = 0.0;
 		}
-		w->count = pattern;
+		w->count = pattern + 1;
 	}
 
 	w->weight[pattern] += value;
@@ -87,9 +87,21 @@ void pat_weight_load(struct pat_weight **w, const char *path) {
 	if (!file) return;
 
 	while (fgets(buffer, 100, file)) {
-		sscanf(buffer, "%i %f", &i, &value);
+		sscanf(buffer, "%i %lf", &i, &value);
 		(*w) = pat_weight_reward(*w, i, value);
 	}
 
 	fclose(file);
+}
+
+void pat_weight_list(struct pat_weight *w) {
+	int i;
+
+	printf("WEIGHTS\n");
+
+	if (!w) return;
+
+	for (i = 0; i < w->count; i++) {
+		printf("%d:\t%f\n", i, w->weight[i]);
+	}
 }

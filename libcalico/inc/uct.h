@@ -17,7 +17,7 @@
 #ifndef UCT_H
 #define UCT_H
 
-#include <go.h>
+#include <calico.h>
 
 struct uct_node {
 	struct go_board *state;
@@ -44,11 +44,8 @@ int uct_best_rate(struct uct_node *uct);
 
 double uct_eval_rate(struct uct_node *uct, int move);
 
-int uct_playout(struct uct_node *root);
+int uct_playout(struct uct_node *root, pat_matcher p, struct pat_weight *w);
 
-int uct_play(struct uct_node *uct);
 int uct_list(struct uct_node *uct);
-
-int uct_reward_patterns(struct uct_node *uct);
 
 #endif/*UCT_H*/

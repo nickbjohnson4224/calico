@@ -20,6 +20,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <time.h>
+#include <math.h>
 
 int read_move(int *x, int *y) {
 	char buffer[100];
@@ -43,6 +44,7 @@ int read_move(int *x, int *y) {
 
 int main(void) {
 	struct go_board *board;
+	struct pat_weight *w;
 	struct uct_node *uct;
 	int x, y, i;
 	int best_move;
@@ -50,7 +52,13 @@ int main(void) {
 
 	board = go_new();
 
+	w = NULL;
+	pat_weight_load(&w, "height.pat");
+	pat_weight_list(w);
+
 	srand(time(NULL));
+	
+	board->player = BLACK;
 
 	while (1) {
 
@@ -58,9 +66,15 @@ int main(void) {
 
 		uct = new_uct(board);
 		uct->valid = 1;
-		for (i = 0; i < 10000; i++) {
-			uct_playout(uct);
+
+		for (i = 0; i < 10000 || 
+				uct_lcb(uct->child[uct_best_lcb(uct)]) < (1.0 - .1 * log10((double) i + 1.0)); i++) {
+			uct_playout(uct, height_matcher, w);
+
+			if (i > 50000) break;
 		}
+
+		printf("playouts: %d\n", i);
 
 		best_move = uct_best_rate(uct);
 		rate = uct_eval_rate(uct, best_move);

@@ -1,9 +1,9 @@
 SOURCES := $(patsubst %.c,%.o,$(shell find . -mindepth 2 -name "*.c"))
 HEADERS := $(shell find . -name "*.h")
 
-CFLAGS  := -Wall -Wextra -Werror -pedantic -std=c99
+CFLAGS  := -Wall -Wextra -Werror -pedantic -std=c99 -Wno-unused-parameter -Wno-unused-function
 CFLAGS	+= -pipe
-CFLAGS	+= -fomit-frame-pointer -O3
+CFLAGS	+= -fomit-frame-pointer -O3 -march=native
 CFLAGS	+= -g
 CFLAGS	+= -I$(PWD)/libcalico/inc
 

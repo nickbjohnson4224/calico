@@ -22,8 +22,9 @@
 static int is_bad_move(struct go_board *board, int move, int player);
 static int can_play(struct go_board *board, int player);
 
-int playout(const struct go_board *board_init) {
+int playout(const struct go_board *board_init, pat_matcher p, struct pat_weight *w) {
 	struct go_board *board;
+	struct mdist *mdist;
 	int i, j, move, winner, pass;
 
 	board = go_clone(board_init);
@@ -32,33 +33,28 @@ int playout(const struct go_board *board_init) {
 	j = 0;
 	pass = 0;
 	while (1) {
-		move = rand() % (GO_DIM * GO_DIM);
+
+		if (1 || !p || !w) {
+			move = rand() % (GO_DIM * GO_DIM);
+		}
+		else {
+			mdist = pat_gen_mdist(board, board->player, w, p);
+			move = mdist_sel(mdist);
+			free(mdist);
+		}
 
 		if (is_bad_move(board, move, board->player)) {
 			j++;
 
-			if (j > 20) {
-				if (!can_play(board, board->player)) {
-					pass++;
-					board->player = -board->player;
-					j = 0;
-					if (pass >= 2) {
-						winner = go_score(board);
-						free(board);
-						return (winner > 0) ? BLACK : WHITE;
-					}
-				}
-				else {
-					for (i = 0; i < GO_DIM * GO_DIM; i++) {
-						if (!is_bad_move(board, i, board->player)) {
-							pass = 0;
-							go_place(board, i, board->player);
-							board->player = -board->player;
-							break;
-						}
-					}
-				}
+			if (j > 100) {
+				pass++;
+				board->player = -board->player;
 				j = 0;
+				if (pass >= 2) {
+					winner = go_score(board);
+					free(board);
+					return (winner > 0) ? BLACK : WHITE;
+				}
 			}
 
 			continue;
@@ -109,15 +105,4 @@ static int can_play(struct go_board *board, int player) {
 	}
 
 	return 0;
-}
-
-double winrate(const struct go_board *board, int player, int tries) {
-	int i;
-	int wins;
-
-	for (wins = 0, i = 0; i < tries; i++) {
-		if (playout(board) == player) wins++;
-	}
-
-	return ((double) wins / (double) tries);
 }

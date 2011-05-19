@@ -20,12 +20,10 @@
 #include <stdio.h>
 #include <math.h>
 
-// Split at N plays
 #define N (GO_DIM * GO_DIM)
+#define CONF .5
 
-#define CONF .1
-
-#define ERR(s, n, p) (CONF * (log((s) + 1) / log((N) + 1)) * sqrt(((p) * (1.0 - (p))) / (n)))
+#define ERR(s, n, p) (CONF * (log((s) + 1) / log(N)) * sqrt(1.0 / (n)))
 
 struct uct_node *new_uct(const struct go_board *state) {
 	struct uct_node *node;
@@ -65,10 +63,6 @@ double uct_ucb(struct uct_node *uct) {
 		return 2.0;
 	}
 	
-	if (uct->wins == 0) {
-		return 1.0;
-	}
-
 	winrate = (double) (uct->wins) / (uct->plays);
 
 	return winrate + ERR(uct->parent->plays, uct->plays, winrate);
@@ -157,39 +151,6 @@ int uct_best_rate(struct uct_node *uct) {
 	return best_move;
 }
 
-int uct_play(struct uct_node *uct) {
-	int move;
-	
-	while (1) {
-		move = uct_best_ucb(uct);
-
-		if (!uct->child[move]) {
-			uct->child[move] = new_uct(uct->state);
-			uct->child[move]->parent = uct;
-
-			if (!go_check(uct->child[move]->state, move, uct->state->player)) {
-				go_place(uct->child[move]->state, move, uct->state->player);
-				uct->child[move]->state->player = -uct->state->player;
-				uct->child[move]->valid = 1;
-			}
-			else {
-				uct->child[move]->valid = 0;
-				continue;
-			}
-		}
-
-		break;
-	}
-
-	if (playout(uct->child[move]->state) == -uct->child[move]->state->player) {
-		uct->child[move]->wins++;
-	}
-	uct->child[move]->plays++;
-	uct->plays++;
-
-	return 0;
-}
-
 static int uct_new_child(struct uct_node *parent, int move) {
 	
 	if (parent->child[move]) {
@@ -211,7 +172,7 @@ static int uct_new_child(struct uct_node *parent, int move) {
 	}
 }
 
-int uct_playout(struct uct_node *root) {
+int uct_playout(struct uct_node *root, pat_matcher p, struct pat_weight *w) {
 	int move;
 	int winner;
 
@@ -228,7 +189,7 @@ int uct_playout(struct uct_node *root) {
 
 			if (root->child[move]->valid) {
 				// valid move: recurse
-				winner = uct_playout(root->child[move]);
+				winner = uct_playout(root->child[move], p, w);
 
 				if (winner == -root->state->player) {
 					root->wins++;
@@ -249,7 +210,7 @@ int uct_playout(struct uct_node *root) {
 			if (root->child[move]->valid) {
 				// valid move: playout
 				
-				winner = playout(root->child[move]->state);
+				winner = playout(root->child[move]->state, p, w);
 				
 				if (winner == -root->child[move]->state->player) {
 					root->child[move]->wins++;

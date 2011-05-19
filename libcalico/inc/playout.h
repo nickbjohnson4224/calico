@@ -17,10 +17,8 @@
 #ifndef PLAYOUT_H
 #define PLAYOUT_H
 
-#include <go.h>
+#include <calico.h>
 
-int playout(const struct go_board *board);
-
-double winrate(const struct go_board *board, int player, int tries);
+int playout(const struct go_board *board, pat_matcher p, struct pat_weight *w);
 
 #endif/*PLAYOUT_H*/
