@@ -172,7 +172,7 @@ static int uct_new_child(struct uct_node *parent, int move) {
 	}
 }
 
-int uct_playout(struct uct_node *root, pat_matcher p, struct pat_weight *w) {
+int uct_playout(struct uct_node *root) {
 	int move;
 	int winner;
 
@@ -189,7 +189,7 @@ int uct_playout(struct uct_node *root, pat_matcher p, struct pat_weight *w) {
 
 			if (root->child[move]->valid) {
 				// valid move: recurse
-				winner = uct_playout(root->child[move], p, w);
+				winner = uct_playout(root->child[move]);
 
 				if (winner == -root->state->player) {
 					root->wins++;
@@ -210,7 +210,7 @@ int uct_playout(struct uct_node *root, pat_matcher p, struct pat_weight *w) {
 			if (root->child[move]->valid) {
 				// valid move: playout
 				
-				winner = playout(root->child[move]->state, p, w);
+				winner = playout(root->child[move]->state);
 				
 				if (winner == -root->child[move]->state->player) {
 					root->child[move]->wins++;

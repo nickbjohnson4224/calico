@@ -19,6 +19,8 @@
 
 #include <calico.h>
 
-int playout(const struct go_board *board, pat_matcher p, struct pat_weight *w);
+extern int influence[GO_DIM * GO_DIM];
+
+int playout(const struct go_board *board);
 
 #endif/*PLAYOUT_H*/

@@ -16,32 +16,44 @@
 
 #include <calico.h>
 
-#include <stdlib.h>
-#include <string.h>
+int go_dist(int move0, int move1) {
+	int x0, y0, x1, y1, dx, dy;
 
-struct go_board *go_new(void) {
-	struct go_board *board;
-	int i;
-
-	board = calloc(sizeof(struct go_board), 1);
-	board->ko = PASS;
-	board->last = PASS;
-	board->player = BLACK;
-
-	for (i = 0; i < GO_DIM * GO_DIM; i++) {
-		board->pos[i].group = i;
+	if (move0 == PASS || move1 == PASS) {
+		return 1;
 	}
 
-	go_gen_adj();
+	x0 = move0 % GO_DIM;
+	y0 = move0 / GO_DIM;
+	x1 = move1 % GO_DIM;
+	y1 = move1 / GO_DIM;
 
-	return board;
+	dx = (x0 < x1) ? x1 - x0 : x0 - x1;
+	dy = (y0 < y1) ? y1 - y0 : y0 - y1;
+
+	return (dx + dy + ((dx < dy) ? dy : dx));
 }
 
-struct go_board *go_clone(const struct go_board *board) {
-	struct go_board *new;
+int go_height(int move) {
+	int x, y;
 
-	new = malloc(sizeof(struct go_board));
-	memcpy(new, board, sizeof(struct go_board));
+	x = (move % GO_DIM) + 1;
+	y = (move / GO_DIM) + 1;
 
-	return new;
+	if (x > GO_DIM / 2 + 1) x = GO_DIM - x + 1;
+	if (y > GO_DIM / 2 + 1) y = GO_DIM - y + 1;
+
+	return (x < y) ? x : y;
+}
+
+int go_is_atari(const struct go_board *board, int move, int player) {
+	return 0;
+}
+
+int go_is_extend(const struct go_board *board, int move, int player) {
+	return 0;
+}
+
+int go_is_capture(const struct go_board *board, int move, int player) {
+	return 0;
 }

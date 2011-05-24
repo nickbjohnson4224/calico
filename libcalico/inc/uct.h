@@ -44,7 +44,7 @@ int uct_best_rate(struct uct_node *uct);
 
 double uct_eval_rate(struct uct_node *uct, int move);
 
-int uct_playout(struct uct_node *root, pat_matcher p, struct pat_weight *w);
+int uct_playout(struct uct_node *root);
 
 int uct_list(struct uct_node *uct);
 

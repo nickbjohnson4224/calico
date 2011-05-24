@@ -14,34 +14,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#ifndef GEN_H
+#define GEN_H
+
 #include <calico.h>
 
-#include <stdlib.h>
-#include <string.h>
+/* move generator ***********************************************************/
 
-struct go_board *go_new(void) {
-	struct go_board *board;
-	int i;
+int gen_move(const struct go_board *board);
 
-	board = calloc(sizeof(struct go_board), 1);
-	board->ko = PASS;
-	board->last = PASS;
-	board->player = BLACK;
-
-	for (i = 0; i < GO_DIM * GO_DIM; i++) {
-		board->pos[i].group = i;
-	}
-
-	go_gen_adj();
-
-	return board;
-}
-
-struct go_board *go_clone(const struct go_board *board) {
-	struct go_board *new;
-
-	new = malloc(sizeof(struct go_board));
-	memcpy(new, board, sizeof(struct go_board));
-
-	return new;
-}
+#endif/*GEN_H*/

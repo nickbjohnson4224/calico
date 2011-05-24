@@ -46,7 +46,7 @@ void go_print(struct go_board *board) {
 				printf("#");	
 			}
 			else {
-				if ((x - 3) % 6 == 1 && (y - 3) % 6 == 1) {
+				if ((x - 3) % 6 == 1 && (y - 3) % 6 == 1 && GO_DIM == 13 || GO_DIM == 19) {
 					printf("+");
 				}
 				else {

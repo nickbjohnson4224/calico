@@ -19,90 +19,40 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static int is_bad_move(struct go_board *board, int move, int player);
-static int can_play(struct go_board *board, int player);
+int influence[GO_DIM * GO_DIM];
 
-int playout(const struct go_board *board_init, pat_matcher p, struct pat_weight *w) {
+int playout(const struct go_board *board_init) {
 	struct go_board *board;
-	struct mdist *mdist;
-	int i, j, move, winner, pass;
+	int move, winner, pass;
 
 	board = go_clone(board_init);
 	
-	i = 0;
-	j = 0;
 	pass = 0;
 	while (1) {
+		move = gen_move(board);
 
-		if (1 || !p || !w) {
-			move = rand() % (GO_DIM * GO_DIM);
-		}
-		else {
-			mdist = pat_gen_mdist(board, board->player, w, p);
-			move = mdist_sel(mdist);
-			free(mdist);
-		}
+		if (move == PASS) {
+			pass++;
+			board->player = -board->player;
+			if (pass >= 2) {
+				winner = go_score(board);
 
-		if (is_bad_move(board, move, board->player)) {
-			j++;
-
-			if (j > 100) {
-				pass++;
-				board->player = -board->player;
-				j = 0;
-				if (pass >= 2) {
-					winner = go_score(board);
-					free(board);
-					return (winner > 0) ? BLACK : WHITE;
+				for (int i = 0; i < GO_DIM * GO_DIM; i++) {
+					influence[i] += go_get_color(board, i);
 				}
+
+				free(board);
+				return (winner > 0) ? BLACK : WHITE;
 			}
 
 			continue;
 		}
 
 		pass = 0;
-		j = 0;
 		go_place(board, move, board->player);
 		board->player = -board->player;
 	}
 
 	free(board);
-	return 0;
-}
-
-static int is_bad_move(struct go_board *board, int move, int player) {
-	int adj, i;
-	
-	if (go_check(board, move, player)) {
-		return 1;
-	}
-
-	adj = 0;
-	for (i = 0; i < 4; i++) {
-		if (go_get_color(board, go_get_adj(move, i)) == player 
-				|| go_get_color(board, go_get_adj(move, i)) == INVAL) {
-			adj++;
-		}
-		if (go_get_libs(board, go_get_adj(move, i)) == 1) {
-			return 0;
-		}
-	}
-
-	if (adj == 4) {
-		return 1;
-	}
-
-	return 0;
-}
-
-static int can_play(struct go_board *board, int player) {
-	int i;
-
-	for (i = 0; i < GO_DIM * GO_DIM; i++) {
-		if (!is_bad_move(board, i, player)) {
-			return 1;
-		}
-	}
-
 	return 0;
 }

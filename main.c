@@ -16,18 +16,32 @@
 
 #include <calico.h>
 
+#include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <time.h>
 #include <math.h>
 
-int read_move(int *x, int *y) {
+#define DIFFICULTY 4
+
+#define DIFF_Q 10000
+#define DIFF_K ((1.0 / DIFF_Q) * pow(2.0, 1.0 - DIFFICULTY))
+
+#define CALICO 0
+#define GEN 1
+#define AI CALICO
+
+int read_move(void) {
 	char buffer[100];
 	char letter;
 	int number;
+	int x, y;
 
 	fgets(buffer, 100, stdin);
+	if (!strcmp(buffer, "pass\n")) {
+		return PASS;
+	}
 	sscanf(buffer, "%c %d", &letter, &number);
 
 	letter = toupper(letter) - 'A';
@@ -36,49 +50,48 @@ int read_move(int *x, int *y) {
 		letter--;
 	}
 
-	*x = letter + 1;
-	*y = number;
+	x = letter + 1;
+	y = number;
 
-	return 0;
+	return go_get_pos(x, y);
 }
 
 int main(void) {
-	struct go_board *board;
-	struct pat_weight *w;
+	#if (AI == CALICO)
 	struct uct_node *uct;
-	int x, y, i;
-	int best_move;
 	double rate;
+	int i;
+	int x, y;
+	#endif
+
+	struct go_board *board;
+	int move;
 
 	board = go_new();
 
-	w = NULL;
-	pat_weight_load(&w, "height.pat");
-	pat_weight_list(w);
-
 	srand(time(NULL));
-	
-	board->player = BLACK;
 
 	while (1) {
 
 		board->player = BLACK;
 
+		#if (AI == CALICO)
 		uct = new_uct(board);
 		uct->valid = 1;
 
-		for (i = 0; i < 10000 || 
-				uct_lcb(uct->child[uct_best_lcb(uct)]) < (1.0 - .1 * log10((double) i + 1.0)); i++) {
-			uct_playout(uct, height_matcher, w);
+		for (i = 0; i < DIFF_Q || 
+				uct_lcb(uct->child[uct_best_lcb(uct)]) < (1.0 - DIFF_K * i); i++) {
+			uct_playout(uct);
 
-			if (i > 50000) break;
+			printf("progress: %f%%\r", uct_lcb(uct->child[uct_best_lcb(uct)]) / (1.0 - DIFF_K * i) * 100);
 		}
+		printf("\n");
 
 		printf("playouts: %d\n", i);
+		printf("highest confidence: %f\n", uct_lcb(uct->child[uct_best_lcb(uct)]));
 
-		best_move = uct_best_rate(uct);
-		rate = uct_eval_rate(uct, best_move);
-		uct_list(uct);
+		move = uct_best_rate(uct);
+		rate = uct_eval_rate(uct, move);
 		free_uct(uct);
 
 		if (rate < .2) {
@@ -87,8 +100,19 @@ int main(void) {
 			return 0;
 		}
 
-		go_place(board, best_move, BLACK);
-		printf("black's move: %d\n", best_move);
+		for (y = GO_DIM - 1; y >= 0; y--) {
+			for (x = 0; x < GO_DIM; x++) {
+				printf("%s ", (influence[x + y * GO_DIM] > 1000) ? "#" : ((influence[x + y * GO_DIM] < -1000) ? "O" : "-"));
+				influence[x + y * GO_DIM] = 0;
+			}
+			printf("\n");
+		}
+		#elif (AI == GEN)
+		move = gen_move(board);
+		#endif
+
+		go_place(board, move, BLACK);
+		printf("black's move: %d\n", move);
 
 		go_print(board);
 
@@ -96,10 +120,10 @@ int main(void) {
 
 		while (1) {
 			printf("enter a move: ");
-			read_move(&x, &y);
+			move = read_move();
 
-			if (!go_check(board, go_get_pos(x, y), WHITE)) {
-				go_place(board, go_get_pos(x, y), WHITE);
+			if (!go_check(board, move, WHITE)) {
+				go_place(board, move, WHITE);
 				go_print(board);
 				break;
 			}

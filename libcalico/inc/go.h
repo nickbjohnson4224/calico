@@ -97,7 +97,14 @@ int go_place(struct go_board *board, int pos, int player);
 int go_check(struct go_board *board, int pos, int player);
 int go_score(struct go_board *board);
 
-/* output and analysis (print.c) ********************************************/
+/* output (print.c) *********************************************************/
 void go_print(struct go_board *board);
+
+/* analysis (analysis.c) ****************************************************/
+int go_dist      (int move0, int move1);
+int go_height    (int move);
+int go_is_atari  (const struct go_board *board, int move, int player);
+int go_is_extend (const struct go_board *board, int move, int player);
+int go_is_capture(const struct go_board *board, int move, int player);
 
 #endif/*CALICO_GO_H*/

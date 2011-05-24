@@ -32,5 +32,6 @@
 #include <pattern.h>
 #include <playout.h>
 #include <uct.h>
+#include <gen.h>
 
 #endif/*CALICO_H*/
