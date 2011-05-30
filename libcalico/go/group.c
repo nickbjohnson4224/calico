@@ -107,42 +107,31 @@ int go_merge_group(struct go_board *board, int g1, int g2) {
  *
  * Notes:
  *
- * This function runs in O(mlg(n)) time where n is the size of the group and
- * m is the number of spaces on the board.
+ * This function runs in O(n) time where n is the size of the group.
  */
 
 int go_capture_group(struct go_board *board, int pos) {
-	int group;
-	int i, j;
-
-	uint32_t map[GO_DIM * GO_DIM / 32 + 1];
+	int color;
+	int color1;
+	int i;
 
 	if (pos < 0 || pos > GO_DIM * GO_DIM) {
 		return 1;
 	}
 
-	group = go_get_group(board, pos);
+	color = go_get_color(board, pos);
+	board->pos[pos].color = EMPTY;
+	board->pos[pos].group = PASS;
+	board->pos[pos].libs  = 0;
+	board->pos[pos].rank  = 0;
 
-	for (i = 0; i < (GO_DIM * GO_DIM / 32 + 1); i++) {
-		map[i] = 0;
-	}
-
-	for (i = 0; i < GO_DIM * GO_DIM; i++) {
-		if (go_get_group(board, i) == group) {
-			map[i >> 5] |= (1 << (i % 32));
+	for (i = 0; i < 4; i++) {
+		color1 = go_get_color(board, go_get_adj(pos, i));
+		if (color1 == -color) {
+			go_add_libs(board, go_get_adj(pos, i), 1);
 		}
-	}
-
-	for (i = 0; i < GO_DIM * GO_DIM; i++) {
-		if (map[i >> 5] & (1 << (i % 32))) {
-			board->pos[i].group = PASS;
-			board->pos[i].libs  = 0;
-			board->pos[i].color = EMPTY;
-			board->pos[i].rank  = 0;
-
-			for (j = 0; j < 4; j++) {
-				go_add_libs(board, go_get_adj(i, j), 1);
-			}
+		else if (color1 == color) {
+			go_capture_group(board, go_get_adj(pos, i));
 		}
 	}
 

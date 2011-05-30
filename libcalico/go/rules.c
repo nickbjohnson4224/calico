@@ -61,6 +61,7 @@ int go_place(struct go_board *board, int pos, int player) {
 		}
 	}
 
+	board->llast = board->last;
 	board->last = pos;
 
 	return 0;

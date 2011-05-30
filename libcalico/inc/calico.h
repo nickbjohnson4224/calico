@@ -26,7 +26,7 @@
  * all source files.
  */
 
-#define GO_DIM 9
+#define GO_DIM 19
 
 #include <go.h>
 #include <pattern.h>

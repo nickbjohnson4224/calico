@@ -23,14 +23,14 @@
 #include <time.h>
 #include <math.h>
 
-#define DIFFICULTY 4
+#define DIFFICULTY 5
 
 #define DIFF_Q 10000
 #define DIFF_K ((1.0 / DIFF_Q) * pow(2.0, 1.0 - DIFFICULTY))
 
 #define CALICO 0
 #define GEN 1
-#define AI CALICO
+#define AI GEN
 
 int read_move(void) {
 	char buffer[100];
@@ -57,15 +57,15 @@ int read_move(void) {
 }
 
 int main(void) {
+	struct go_board *board;
+	int move;
+
 	#if (AI == CALICO)
 	struct uct_node *uct;
 	double rate;
-	int i;
 	int x, y;
+	int i;
 	#endif
-
-	struct go_board *board;
-	int move;
 
 	board = go_new();
 
@@ -92,6 +92,7 @@ int main(void) {
 
 		move = uct_best_rate(uct);
 		rate = uct_eval_rate(uct, move);
+		uct_list(uct);
 		free_uct(uct);
 
 		if (rate < .2) {

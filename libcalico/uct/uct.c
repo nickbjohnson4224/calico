@@ -23,7 +23,7 @@
 #define N (GO_DIM * GO_DIM)
 #define CONF .5
 
-#define ERR(s, n, p) (CONF * (log((s) + 1) / log(N)) * sqrt(1.0 / (n)))
+#define ERR(s, n) (CONF * (log((s) + 1) / log(N)) * sqrt(1.0 / (n)))
 
 struct uct_node *new_uct(const struct go_board *state) {
 	struct uct_node *node;
@@ -49,7 +49,7 @@ void free_uct(struct uct_node *uct) {
 }
 
 double uct_ucb(struct uct_node *uct) {
-	double winrate;
+	double ucb;
 
 	if (!uct) {
 		return 2.0;
@@ -62,14 +62,14 @@ double uct_ucb(struct uct_node *uct) {
 	if (uct->plays == 0) {
 		return 2.0;
 	}
-	
-	winrate = (double) (uct->wins) / (uct->plays);
 
-	return winrate + ERR(uct->parent->plays, uct->plays, winrate);
+	ucb = ((double) (uct->wins) / (uct->plays)) + ERR(uct->parent->plays, uct->plays);
+
+	return (ucb > 1.0) ? 1.0 : ucb;
 }
 
 double uct_lcb(struct uct_node *uct) {
-	double winrate;
+	double lcb;
 
 	if (!uct || uct->plays == 0) {
 		return 0.0;
@@ -79,13 +79,12 @@ double uct_lcb(struct uct_node *uct) {
 		return -1.0;
 	}
 
-	winrate = (double) (uct->wins) / (uct->plays);
+	lcb = ((double) (uct->wins) / (uct->plays)) - ERR(uct->parent->plays, uct->plays);
 
-	return winrate - ERR(uct->parent->plays, uct->plays, winrate);
+	return (lcb < 0.0) ? 0.0 : lcb;
 }
 
 double uct_rate(struct uct_node *uct) {
-	double winrate;
 
 	if (!uct || uct->plays == 0) {
 		return 0.0;
@@ -95,9 +94,7 @@ double uct_rate(struct uct_node *uct) {
 		return -1.0;
 	}
 
-	winrate = (double) (uct->wins) / (uct->plays);
-
-	return winrate;
+	return ((double) (uct->wins) / (uct->plays));
 }
 
 int uct_best_lcb(struct uct_node *uct) {

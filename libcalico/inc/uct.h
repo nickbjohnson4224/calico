@@ -27,6 +27,8 @@ struct uct_node {
 	int plays;
 	int valid;
 
+	int best_child;
+
 	struct uct_node *child[GO_DIM * GO_DIM];
 	struct uct_node *parent;
 };
