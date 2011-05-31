@@ -23,29 +23,30 @@ static int is_bad_move(struct go_board *board, int move, int player);
 
 static double move_weight(const struct go_board *board, int move) {
 	double w;
-//	double i;
-	int d, /*h,*/ d2;
+	double i;
+	int d, h, d2;
+	double wd, wd2, wh, wi;
 
 	if (is_bad_move((struct go_board *) board, move, board->player)) {
 		return 0.0;
 	}
 
 	d = go_dist(move, board->last);
-	d2 = go_dist(move, board->llast);
-//	h = go_height(move);
+//	d2 = go_dist(move, board->llast);
+	h = go_height(move);
 //	i = influence[move] / 1000.0;
 //	if (i < 0.0) i = -i;
 
-	w = 0.0;
-//	w += (1.0 * h) / fabs(h - 4.5) / GO_DIM;
-	w += (d < 5) ? 1.0 : 0.0;
-	w += (d2 < 5) ? 1.0 : 0.0;
-//	w += go_is_atari(board, move, board->player);
-//	w += go_is_extend(board, move, board->player);
-//	w += go_is_capture(board, move, board->player);
-//	w += (i <= 1.0) ? 1.0 : 1.0 / i;
-//	w += 0.1;
-	w /= 2.0;
+	wh  = 1.0 / fabs(h - 4.5);
+	wd  = (d <= 5) ? ((d <= 2) ? 1.0 : 0.6) : 0.1;
+//	wd2 = (d2 <= 5) ? ((d2 <= 2) ? 1.0 : 0.6) : 0.1;
+//	wi  = (i <= 1.0) ? 1.0 : 1.0 / i;
+
+	w = 1.0;
+	w = 1.0 / (1.0 / w + 1.0 / wh);
+	w = 1.0 / (1.0 / w + 1.0 / wd);
+//	w = 1.0 / (1.0 / w + 1.0 / wd2);
+//	w = 1.0 / (1.0 / w + 1.0 / wi);
 
 //	printf("move: %d, last: %d\n", move, board->last);
 //	printf("distance: %d, height: %d\n", d, h);
@@ -58,12 +59,31 @@ int gen_move(const struct go_board *board) {
 	int move, i;
 	double x;
 
+	return gen_move_light(board);
+
 	i = 0;
 	while (1) {
 		move = rand() % (GO_DIM * GO_DIM);
 		x = rand() / ((double) RAND_MAX);
 
 		if (x > move_weight(board, move)) {
+			i++;
+			if (i > 100) return PASS;
+			continue;
+		}
+
+		return move;
+	}
+}
+
+int gen_move_light(const struct go_board *board) {
+	int move, i;
+
+	i = 0;
+	while (1) {
+		move = rand() % (GO_DIM * GO_DIM);
+
+		if (is_bad_move((struct go_board *) board, move, board->player)) {
 			i++;
 			if (i > 100) return PASS;
 			continue;

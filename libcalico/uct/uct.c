@@ -97,6 +97,31 @@ double uct_rate(struct uct_node *uct) {
 	return ((double) (uct->wins) / (uct->plays));
 }
 
+double uct_rate_rec(struct uct_node *uct, int threshold) {
+	double rate;
+	
+	if (!uct || uct->plays == 0) {
+		return 0.0;
+	}
+
+	if (!uct->valid) {
+		return -1.0;
+	}
+
+	if (uct->plays < threshold) {
+		return uct_rate(uct);
+	}
+	else {
+		rate = uct_rate_rec(uct->child[uct_best_rate(uct)], threshold);
+		if (rate == -1.0) {
+			return uct_rate(uct);
+		}
+		else {
+			return (1.0 - rate);
+		}
+	}
+}
+
 int uct_best_lcb(struct uct_node *uct) {
 	double best_lcb;
 	int best_move;
@@ -142,6 +167,23 @@ int uct_best_rate(struct uct_node *uct) {
 		if (uct_rate(uct->child[i]) >= best_rate) {
 			best_move = i;
 			best_rate = uct_rate(uct->child[i]);
+		}
+	}
+
+	return best_move;
+}
+
+int uct_best_rate_rec(struct uct_node *uct, int threshold) {
+	double best_rate;
+	int best_move;
+	int i;
+
+	best_rate = -1.0;
+	best_move = -1;
+	for (i = 0; i < GO_DIM * GO_DIM; i++) {
+		if (uct_rate_rec(uct->child[i], threshold) >= best_rate && uct->child[i]->plays > threshold) {
+			best_move = i;
+			best_rate = uct_rate_rec(uct->child[i], threshold);
 		}
 	}
 
@@ -237,7 +279,8 @@ int uct_list(struct uct_node *uct) {
 			printf("move %d: ", i);
 			printf("\tplays = %d", (uct->child[i]) ? uct->child[i]->plays : 0);
 			printf("\twins = %d", (uct->child[i]) ? uct->child[i]->wins : 0);
-			printf("\tCI = [%f, %f]\n", uct_lcb(uct->child[i]), uct_ucb(uct->child[i]));
+			printf("\tCI = [%f, %f, %f]\n", 
+				uct_lcb(uct->child[i]), uct_rate(uct->child[i]), uct_ucb(uct->child[i]));
 		}
 	}
 

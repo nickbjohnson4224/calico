@@ -22,5 +22,6 @@
 extern int influence[GO_DIM * GO_DIM];
 
 int playout(const struct go_board *board);
+int playout_light(const struct go_board *board);
 
 #endif/*PLAYOUT_H*/

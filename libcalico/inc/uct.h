@@ -40,9 +40,12 @@ double uct_ucb(struct uct_node *uct);
 double uct_lcb(struct uct_node *uct);
 double uct_rate(struct uct_node *uct);
 
+double uct_rate_rec(struct uct_node *uct, int threshold);
+
 int uct_best_lcb(struct uct_node *uct);
 int uct_best_ucb(struct uct_node *uct);
 int uct_best_rate(struct uct_node *uct);
+int uct_best_rate_rec(struct uct_node *uct, int threshold);
 
 double uct_eval_rate(struct uct_node *uct, int move);
 

@@ -23,14 +23,14 @@
 #include <time.h>
 #include <math.h>
 
-#define DIFFICULTY 5
+#define DIFFICULTY 4
 
 #define DIFF_Q 10000
 #define DIFF_K ((1.0 / DIFF_Q) * pow(2.0, 1.0 - DIFFICULTY))
 
 #define CALICO 0
 #define GEN 1
-#define AI GEN
+#define AI CALICO
 
 int read_move(void) {
 	char buffer[100];
@@ -83,7 +83,9 @@ int main(void) {
 				uct_lcb(uct->child[uct_best_lcb(uct)]) < (1.0 - DIFF_K * i); i++) {
 			uct_playout(uct);
 
-			printf("progress: %f%%\r", uct_lcb(uct->child[uct_best_lcb(uct)]) / (1.0 - DIFF_K * i) * 100);
+			if (i % 10 == 0) {
+				printf("progress: %f%%\r", uct_lcb(uct->child[uct_best_lcb(uct)]) / (1.0 - DIFF_K * i) * 100);
+			}
 		}
 		printf("\n");
 
@@ -91,6 +93,7 @@ int main(void) {
 		printf("highest confidence: %f\n", uct_lcb(uct->child[uct_best_lcb(uct)]));
 
 		move = uct_best_rate(uct);
+
 		rate = uct_eval_rate(uct, move);
 		uct_list(uct);
 		free_uct(uct);

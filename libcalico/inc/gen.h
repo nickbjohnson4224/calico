@@ -22,5 +22,6 @@
 /* move generator ***********************************************************/
 
 int gen_move(const struct go_board *board);
+int gen_move_light(const struct go_board *board);
 
 #endif/*GEN_H*/

@@ -56,3 +56,39 @@ int playout(const struct go_board *board_init) {
 	free(board);
 	return 0;
 }
+
+int playout_light(const struct go_board *board_init) {
+	struct go_board *board;
+	int move, winner, pass;
+
+	board = go_clone(board_init);
+	
+	pass = 0;
+	while (1) {
+		move = gen_move_light(board);
+
+		if (move == PASS) {
+			pass++;
+			board->player = -board->player;
+			if (pass >= 2) {
+				winner = go_score(board);
+
+				for (int i = 0; i < GO_DIM * GO_DIM; i++) {
+					influence[i] += go_get_color(board, i);
+				}
+
+				free(board);
+				return (winner > 0) ? BLACK : WHITE;
+			}
+
+			continue;
+		}
+
+		pass = 0;
+		go_place(board, move, board->player);
+		board->player = -board->player;
+	}
+
+	free(board);
+	return 0;
+}
