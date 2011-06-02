@@ -32,25 +32,16 @@ static double move_weight(const struct go_board *board, int move) {
 	}
 
 	d = go_dist(move, board->last);
-//	d2 = go_dist(move, board->llast);
+	d2 = go_dist(move, board->llast);
 	h = go_height(move);
-//	i = influence[move] / 1000.0;
-//	if (i < 0.0) i = -i;
 
-	wh  = 1.0 / fabs(h - 4.5);
-	wd  = (d <= 5) ? ((d <= 2) ? 1.0 : 0.6) : 0.1;
-//	wd2 = (d2 <= 5) ? ((d2 <= 2) ? 1.0 : 0.6) : 0.1;
-//	wi  = (i <= 1.0) ? 1.0 : 1.0 / i;
+	wd  = (d <= 5) ? 1.0 : 0.0;
+	wd2 = (d2 <= 5) ? 1.0 : 0.0;
 
 	w = 1.0;
-	w = 1.0 / (1.0 / w + 1.0 / wh);
-	w = 1.0 / (1.0 / w + 1.0 / wd);
-//	w = 1.0 / (1.0 / w + 1.0 / wd2);
-//	w = 1.0 / (1.0 / w + 1.0 / wi);
-
-//	printf("move: %d, last: %d\n", move, board->last);
-//	printf("distance: %d, height: %d\n", d, h);
-//	printf("weight: %f\n", w);
+	w += wd;
+	w += wd2;
+	w /= 3.0;
 
 	return w;
 }
@@ -59,8 +50,6 @@ int gen_move(const struct go_board *board) {
 	int move, i;
 	double x;
 
-	return gen_move_light(board);
-
 	i = 0;
 	while (1) {
 		move = rand() % (GO_DIM * GO_DIM);
@@ -68,7 +57,14 @@ int gen_move(const struct go_board *board) {
 
 		if (x > move_weight(board, move)) {
 			i++;
-			if (i > 100) return PASS;
+			if (i > 10) {
+				for (move = 0; move < GO_DIM * GO_DIM; move++) {
+					if (move_weight(board, move) > 0.0) {
+						return move;
+					}
+				}
+				return PASS;
+			}
 			continue;
 		}
 
@@ -77,11 +73,12 @@ int gen_move(const struct go_board *board) {
 }
 
 int gen_move_light(const struct go_board *board) {
+	static unsigned int seed;
 	int move, i;
 
 	i = 0;
 	while (1) {
-		move = rand() % (GO_DIM * GO_DIM);
+		move = rand_r(&seed) % (GO_DIM * GO_DIM);
 
 		if (is_bad_move((struct go_board *) board, move, board->player)) {
 			i++;

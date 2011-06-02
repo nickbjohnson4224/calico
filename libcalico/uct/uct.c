@@ -48,6 +48,28 @@ void free_uct(struct uct_node *uct) {
 	free(uct);
 }
 
+struct uct_node *merge_uct(struct uct_node *uct1, struct uct_node *uct2) {
+	int i;
+	
+	uct1->wins += uct2->wins;
+	uct1->plays += uct2->plays;
+
+	for (i = 0; i < GO_DIM * GO_DIM; i++) {
+		if (uct2->child[i]) {
+			if (uct1->child[i]) {
+				merge_uct(uct1->child[i], uct2->child[i]);
+			}
+			else {
+				uct1->child[i] = uct2->child[i];
+			}
+		}
+	}
+
+	free(uct2);
+
+	return uct1;
+}
+
 double uct_ucb(struct uct_node *uct) {
 	double ucb;
 
@@ -249,7 +271,7 @@ int uct_playout(struct uct_node *root) {
 			if (root->child[move]->valid) {
 				// valid move: playout
 				
-				winner = playout(root->child[move]->state);
+				winner = playout_light(root->child[move]->state);
 				
 				if (winner == -root->child[move]->state->player) {
 					root->child[move]->wins++;

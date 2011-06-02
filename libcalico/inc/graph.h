@@ -14,25 +14,33 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef CALICO_H
-#define CALICO_H
+#ifndef CALICO_GRAPH_H
+#define CALICO_GRAPH_H
 
-#include <stdint.h>
+#include <SDL/SDL.h>
 
-/*****************************************************************************
- * GO_DIM
- *
- * Side length of the Go board. Pretty straightforward. This affects almost
- * all source files.
- */
+struct graph_position {
+	uint32_t bgcolor;
+	int piece_color;
+	int symbol;
+};
 
-#define GO_DIM 9
+#define SYM_NONE	0
+#define SYM_SQUARE	1
+#define SYM_CIRCLE	2
 
-#include <go.h>
-#include <pattern.h>
-#include <playout.h>
-#include <uct.h>
-#include <gen.h>
-#include <graph.h>
+struct graph {
+	struct graph_position pos[GO_DIM * GO_DIM];
+	SDL_Surface *surface;
+};
 
-#endif/*CALICO_H*/
+struct graph *graph_new(void);
+
+void graph_set_board  (struct graph *g, struct go_board *b);
+void graph_set_bgcolor(struct graph *g, int pos, uint32_t color);
+void graph_set_piece  (struct graph *g, int pos, int piece);
+void graph_set_symbol (struct graph *g, int pos, int symbol);
+
+void graph_blit(struct graph *g, SDL_Surface *screen);
+
+#endif/*CALICO_GRAPH_H*/

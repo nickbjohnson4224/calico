@@ -16,6 +16,7 @@
 
 #include <calico.h>
 
+#include <pthread.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -23,10 +24,9 @@
 #include <time.h>
 #include <math.h>
 
-#define DIFFICULTY 4
-
-#define DIFF_Q 10000
-#define DIFF_K ((1.0 / DIFF_Q) * pow(2.0, 1.0 - DIFFICULTY))
+#define PLAYOUTS 100000
+#define TIME_PER_MOVE 10.0
+#define THREADS 4
 
 #define CALICO 0
 #define GEN 1
@@ -34,11 +34,12 @@
 
 int read_move(void) {
 	char buffer[100];
+	char *s;
 	char letter;
 	int number;
 	int x, y;
 
-	fgets(buffer, 100, stdin);
+	s = fgets(buffer, 100, stdin);
 	if (!strcmp(buffer, "pass\n")) {
 		return PASS;
 	}
@@ -56,8 +57,39 @@ int read_move(void) {
 	return go_get_pos(x, y);
 }
 
+
+void *calico_thread(void *uct_ptr) {
+	struct uct_node *uct;
+	struct uct_node **uct_tbl = uct_ptr;
+	double playout_time;
+	volatile int i;
+
+	playout_time = clock();
+
+	uct = *uct_tbl;
+
+	printf("thread starting on UCT %p\n", (void*) uct);
+
+	for (i = 0; i < PLAYOUTS / THREADS; i++) {
+		uct_playout(uct);
+
+		if (i % 100 == 0) {
+			printf("progress: %f%%\r", 100 * (i / (double) (PLAYOUTS / THREADS)));
+		}
+	}
+
+	*uct_tbl = uct;
+
+	return NULL;
+}
+
+struct uct_node *thread_uct[THREADS];
+pthread_t thread[THREADS];
+
 int main(void) {
+	SDL_Surface *screen;
 	struct go_board *board;
+	double playout_time;
 	int move;
 
 	#if (AI == CALICO)
@@ -69,6 +101,9 @@ int main(void) {
 
 	board = go_new();
 
+//	SDL_Init(SDL_INIT_VIDEO);
+//	screen = SDL_SetVideoMode(640, 480, 32, SDL_SWSURFACE);
+
 	srand(time(NULL));
 
 	while (1) {
@@ -76,21 +111,31 @@ int main(void) {
 		board->player = BLACK;
 
 		#if (AI == CALICO)
-		uct = new_uct(board);
-		uct->valid = 1;
+		playout_time = clock();
 
-		for (i = 0; i < DIFF_Q || 
-				uct_lcb(uct->child[uct_best_lcb(uct)]) < (1.0 - DIFF_K * i); i++) {
-			uct_playout(uct);
-
-			if (i % 10 == 0) {
-				printf("progress: %f%%\r", uct_lcb(uct->child[uct_best_lcb(uct)]) / (1.0 - DIFF_K * i) * 100);
+		for (i = 0; i < THREADS; i++) {
+			thread_uct[i] = new_uct(board);
+			thread_uct[i]->valid = 1;
+			if (pthread_create(&thread[i], NULL, calico_thread, (void*) &thread_uct[i])) {
+				fprintf(stderr, "could not create thread %d\n", i);
+				abort();
 			}
 		}
-		printf("\n");
 
-		printf("playouts: %d\n", i);
-		printf("highest confidence: %f\n", uct_lcb(uct->child[uct_best_lcb(uct)]));
+		for (i = 0; i < THREADS; i++) {
+			pthread_join(thread[i], NULL);
+
+			printf("thread %d terminated with %d playouts\n", i, thread_uct[i]->plays);
+		}
+
+		uct = thread_uct[0];
+		for (i = 1; i < THREADS; i++) {
+			merge_uct(uct, thread_uct[i]);
+		}
+
+		printf("playouts: %d\n", uct->plays);
+		printf("playouts per second: %f\n", uct->plays / ((clock() - playout_time) / CLOCKS_PER_SEC));
+		printf("highest confidence: %f\n", uct_rate(uct->child[uct_best_rate(uct)]));
 
 		move = uct_best_rate(uct);
 
@@ -104,16 +149,26 @@ int main(void) {
 			return 0;
 		}
 
-		for (y = GO_DIM - 1; y >= 0; y--) {
-			for (x = 0; x < GO_DIM; x++) {
-				printf("%s ", (influence[x + y * GO_DIM] > 1000) ? "#" : ((influence[x + y * GO_DIM] < -1000) ? "O" : "-"));
-				influence[x + y * GO_DIM] = 0;
-			}
-			printf("\n");
-		}
 		#elif (AI == GEN)
 		move = gen_move(board);
 		#endif
+
+		printf("\n");
+		printf("influence map:\n");
+		for (y = GO_DIM - 1; y >= 0; y--) {
+			for (x = 0; x < GO_DIM; x++) {
+				if (influence[x + y * GO_DIM] > 1000) {
+					printf("# ");
+				}
+				else if (influence[x + y * GO_DIM] < -1000) {
+					printf("O ");
+				}
+				else {
+					printf("- ");
+				}
+			}
+			printf("\n");
+		}
 
 		go_place(board, move, BLACK);
 		printf("black's move: %d\n", move);
@@ -137,5 +192,7 @@ int main(void) {
 		}
 	}
 
+	SDL_FreeSurface(screen);
+	SDL_Quit();
 	return 0;
 }

@@ -36,7 +36,7 @@ int playout(const struct go_board *board_init) {
 			board->player = -board->player;
 			if (pass >= 2) {
 				winner = go_score(board);
-
+				
 				for (int i = 0; i < GO_DIM * GO_DIM; i++) {
 					influence[i] += go_get_color(board, i);
 				}

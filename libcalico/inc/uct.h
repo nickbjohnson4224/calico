@@ -27,7 +27,7 @@ struct uct_node {
 	int plays;
 	int valid;
 
-	int best_child;
+//	int best_child;
 
 	struct uct_node *child[GO_DIM * GO_DIM];
 	struct uct_node *parent;
@@ -35,6 +35,7 @@ struct uct_node {
 
 struct uct_node *new_uct(const struct go_board *state);
 void free_uct(struct uct_node *uct);
+struct uct_node *merge_uct(struct uct_node *uct1, struct uct_node *uct2);
 
 double uct_ucb(struct uct_node *uct);
 double uct_lcb(struct uct_node *uct);
