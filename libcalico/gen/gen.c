@@ -26,34 +26,35 @@ static double move_weight(const struct go_board *board, int move) {
 	double i;
 	int d, h, d2;
 	double wd, wd2, wh, wi;
+	int a, e, c;
 
 	if (is_bad_move((struct go_board *) board, move, board->player)) {
 		return 0.0;
 	}
 
+	a   = go_is_atari  ((struct go_board *) board, move, board->player);
+	e   = go_is_extend ((struct go_board *) board, move, board->player);
+	c   = go_is_capture((struct go_board *) board, move, board->player);
+
+	if (a || e || c) return 1.0;
+	
 	d = go_dist(move, board->last);
 	d2 = go_dist(move, board->llast);
-	h = go_height(move);
 
-	wd  = (d <= 5) ? 1.0 : 0.0;
-	wd2 = (d2 <= 5) ? 1.0 : 0.0;
+	if (d <= 5 || d2 <= 5) return 0.8;
 
-	w = 1.0;
-	w += wd;
-	w += wd2;
-	w /= 3.0;
-
-	return w;
+	return 0.5;
 }
 
 int gen_move(const struct go_board *board) {
+	static unsigned int seed;
 	int move, i;
 	double x;
 
 	i = 0;
 	while (1) {
-		move = rand() % (GO_DIM * GO_DIM);
-		x = rand() / ((double) RAND_MAX);
+		move = rand_r(&seed) % (GO_DIM * GO_DIM);
+		x = rand_r(&seed) / ((double) RAND_MAX);
 
 		if (x > move_weight(board, move)) {
 			i++;

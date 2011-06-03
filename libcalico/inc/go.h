@@ -17,6 +17,7 @@
 #ifndef CALICO_GO_H
 #define CALICO_GO_H
 
+#include <SDL/SDL.h>
 #include <stdint.h>
 
 /* board representation *****************************************************/
@@ -100,12 +101,13 @@ int go_score(struct go_board *board);
 
 /* output (print.c) *********************************************************/
 void go_print(struct go_board *board);
+void go_print_sdl(struct go_board *board, SDL_Surface *surface, SDL_Rect *off);
 
 /* analysis (analysis.c) ****************************************************/
 int go_dist      (int move0, int move1);
 int go_height    (int move);
-int go_is_atari  (const struct go_board *board, int move, int player);
-int go_is_extend (const struct go_board *board, int move, int player);
-int go_is_capture(const struct go_board *board, int move, int player);
+int go_is_atari  (struct go_board *board, int move, int player);
+int go_is_extend (struct go_board *board, int move, int player);
+int go_is_capture(struct go_board *board, int move, int player);
 
 #endif/*CALICO_GO_H*/

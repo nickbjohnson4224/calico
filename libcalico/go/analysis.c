@@ -46,14 +46,53 @@ int go_height(int move) {
 	return (x < y) ? x : y;
 }
 
-int go_is_atari(const struct go_board *board, int move, int player) {
+int go_is_atari(struct go_board *board, int move, int player) {
+	int group;
+	int i;
+
+	for (i = 0; i < 4; i++) {
+		if (go_get_color(board, go_get_adj(move, i)) == -player) {
+			group = go_get_group(board, go_get_adj(move, i));
+
+			if (go_get_libs(board, go_get_adj(move, i)) == 2) {
+				return 1;
+			}
+		}
+	}
+
 	return 0;
 }
 
-int go_is_extend(const struct go_board *board, int move, int player) {
+int go_is_extend(struct go_board *board, int move, int player) {
+	int group;
+	int i;
+
+	for (i = 0; i < 4; i++) {
+		if (go_get_color(board, go_get_adj(move, i)) == player) {
+			group = go_get_group(board, go_get_adj(move, i));
+
+			if (go_get_libs(board, go_get_adj(move, i)) == 1) {
+				return 1;
+			}
+		}
+	}
+
 	return 0;
 }
 
-int go_is_capture(const struct go_board *board, int move, int player) {
+int go_is_capture(struct go_board *board, int move, int player) {
+	int group;
+	int i;
+
+	for (i = 0; i < 4; i++) {
+		if (go_get_color(board, go_get_adj(move, i)) == -player) {
+			group = go_get_group(board, go_get_adj(move, i));
+
+			if (go_get_libs(board, go_get_adj(move, i)) == 1) {
+				return 1;
+			}
+		}
+	}
+
 	return 0;
 }

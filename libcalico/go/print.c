@@ -50,7 +50,7 @@ void go_print(struct go_board *board) {
 					printf("+");
 				}
 				else {
-					printf("-");
+					printf("+");
 				}
 			}
 
@@ -71,4 +71,31 @@ void go_print(struct go_board *board) {
 		printf("%c ", letters[x]);
 	}
 	printf("\n\n");
+}
+
+void go_print_sdl(struct go_board *board, SDL_Surface *surface, SDL_Rect *off) {
+	static SDL_Surface *black_bmp = NULL;
+	static SDL_Surface *white_bmp = NULL;
+	static SDL_Surface *board_bmp = NULL;
+	SDL_Rect off1;
+	int x, y;
+
+	if (!board_bmp) board_bmp = SDL_LoadBMP("board_blank.bmp");
+	if (!black_bmp) black_bmp = SDL_LoadBMP("black.bmp");
+	if (!white_bmp) white_bmp = SDL_LoadBMP("white.bmp");
+
+	SDL_BlitSurface(board_bmp, NULL, surface, off);
+
+	for (x = 1; x <= GO_DIM; x++) {
+		for (y = 1; y <= GO_DIM; y++) {
+			off1.x = off->x + (x - 1) * 23 + 2;
+			off1.y = off->y + (GO_DIM - y) * 23 + 2;
+			switch (go_get_color(board, go_get_pos(x, y))) {
+			case WHITE: SDL_BlitSurface(white_bmp, NULL, surface, &off1); break;
+			case BLACK: SDL_BlitSurface(black_bmp, NULL, surface, &off1); break;
+			}
+		}
+	}
+
+	SDL_Flip(surface);
 }

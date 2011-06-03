@@ -271,7 +271,7 @@ int uct_playout(struct uct_node *root) {
 			if (root->child[move]->valid) {
 				// valid move: playout
 				
-				winner = playout_light(root->child[move]->state);
+				winner = playout(root->child[move]->state);
 				
 				if (winner == -root->child[move]->state->player) {
 					root->child[move]->wins++;
