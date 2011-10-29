@@ -17,6 +17,42 @@
 import go
 import tui
 import sys
+import calico
+
+passes = 0
+
+def player_turn(board):
+    try:
+        move = tui.read_move()
+    except tui.ExitException:
+        sys.exit(0)
+    except ValueError as v:
+        print "Illegal input"
+        return True
+
+    if not move: passes += 1
+    else: passes = 0
+
+    if passes == 2: os.exit(0)
+  
+    try:
+        board.place(move)
+    except go.IllegalMoveError as i:
+        print "Illegal move:", i
+        return True
+
+    return False
+
+def computer_turn(board):
+    g = calico.MoveGenerator(board)
+    move = g.generate()
+
+    if not move: passes += 1
+    else: passes = 0
+
+    if passes == 2: os.exit(0)
+
+    board.place(move)
 
 if len(sys.argv) < 2:
     board = go.Board()
@@ -28,20 +64,13 @@ tui.display(board)
 try:
     while True:
 
-        try:
-            move = tui.read_move()
-        except tui.ExitException:
-            sys.exit(0)
-        except ValueError as v:
-            print "Illegal input"
-            continue
-  
-        try:
-            board.place(move)
-        except go.IllegalMoveError as i:
-            print "Illegal move:", i
-            continue
+        # user's turn
+        if player_turn(board): continue
+        tui.display(board)
+        print "score: ", board.score()
 
+        # computer's turn
+        computer_turn(board)
         tui.display(board)
         print "score: ", board.score()
 

@@ -248,21 +248,23 @@ class Board:
 
         # make sure there is no suicide
         for i in self.get_adj_list(pos):
-            
-            libs = 0
-
             if self.get(i).color == EMPTY:
                 return
 
+        for i in self.get_adj_list(pos):
+            
+            libs_taken = 0
+
             for j in self.get_adj_list(pos):
                 if self.get(j).group == self.get(i).group:
-                    libs += 1
+                    libs_taken += 1
             
             if self.get(i).color == player:
-                if libs != self.get(i).get_libs():
+                if libs_taken < self.get(i).get_libs():
                     return
+
             elif self.get(i).color == -player:
-                if libs >= self.get(i).get_libs():
+                if libs_taken == self.get(i).get_libs():
                     return
         
         raise IllegalMoveError(pos, player, "suicide move")
