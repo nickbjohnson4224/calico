@@ -1,17 +1,63 @@
-import sys
+# Copyright (C) 2011 Nick Johnson <nickbjohnson4224 at gmail.com>
+# 
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+# piece states / player colors
 EMPTY = 0
 BLACK = 1
 WHITE = -1
 
-class Move:
+class IllegalMoveError(Exception):
+
+    def __init__(self, pos, player, reason):
+        self.pos = pos
+        self.reason = reason
+        self.player = player
+
+    def __str__(self):
+
+        if self.player == WHITE:
+            player_name = "white"
+        elif self.player == BLACK:
+            player_name = "black"
+        elif self.player == EMPTY:
+            player_name = "empty"
+        else:
+            player_name = "invalid"
+        
+        return "(%d %d %s) : %s" % (self.pos.x, self.pos.y, player_name, self.reason)
+
+# represents a position or move (None means pass)
+class Position:
 
     def __init__(self, x, y):
 
         self.x = x
         self.y = y
 
-class Position:
+    def __eq__(self, other):
+        
+        if not other:
+            return False
+        if self.x == other.x and self.y == other.y:
+            return True
+        return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+# represents a piece on the board
+class Piece:
 
     def __init__(self, color = EMPTY):
 
@@ -59,6 +105,7 @@ class Position:
                 group2.libs += group1.libs
                 group2.rank += 1
 
+# represents a Go board
 class Board:
     
     def __init__(self, dim = 19):
@@ -74,7 +121,7 @@ class Board:
         for i in range(0, dim):
             self.board += [[]]
             for j in range(0, dim):
-                self.board[i] += [ Position() ]
+                self.board[i] += [ Piece() ]
 
     def get(self, pos):
 
@@ -95,20 +142,20 @@ class Board:
             return None
 
         return pos
-
+    
     def get_adj_pos(self, pos, direction):
         
         if not pos:
             return None
 
         if direction == 0:
-            return self.validate_pos(Move(pos.x + 1, pos.y))
+            return self.validate_pos(Position(pos.x + 1, pos.y))
         if direction == 1:
-            return self.validate_pos(Move(pos.x, pos.y + 1))
+            return self.validate_pos(Position(pos.x, pos.y + 1))
         if direction == 2:
-            return self.validate_pos(Move(pos.x - 1, pos.y))
+            return self.validate_pos(Position(pos.x - 1, pos.y))
         if direction == 3:
-            return self.validate_pos(Move(pos.x, pos.y - 1))
+            return self.validate_pos(Position(pos.x, pos.y - 1))
 
     def get_adj_list(self, pos):
         
@@ -138,7 +185,7 @@ class Board:
             elif color1 == color:
                 self.capture(i)
     
-    def place(self, pos, player):
+    def place_unchecked(self, pos, player):
         
         if not pos or not self.get(pos):
             return
@@ -165,7 +212,7 @@ class Board:
                     libs += 1
 
             # count liberties of added piece
-            elif color == Go.EMPTY:
+            elif color == EMPTY:
                 libs += 1
         
         self.get(pos).libs  = libs
@@ -183,16 +230,21 @@ class Board:
         self.last = pos
 
     def check(self, pos, player):
-        
+
+        if not pos: return
+
+        if not self.validate_pos(pos):
+            raise IllegalMoveError(pos, player, "position not on board")
+
         # make sure space is open
-        if self.get(pos).color != Go.EMPTY:
-            return False
+        if self.get(pos).color != EMPTY:
+            raise IllegalMoveError(pos, player, "position not empty")
 
         # make sure there are no ko captures
         if self.ko and self.get(self.ko).get_libs() == 1:
             for i in self.get_adj_list(pos):
                 if i == self.ko:
-                    return False
+                    raise IllegalMoveError(pos, player, "ko capture")
 
         # make sure there is no suicide
         for i in self.get_adj_list(pos):
@@ -200,7 +252,7 @@ class Board:
             libs = 0
 
             if self.get(i).color == EMPTY:
-                return True
+                return
 
             for j in self.get_adj_list(pos):
                 if self.get(j).group == self.get(i).group:
@@ -208,17 +260,23 @@ class Board:
             
             if self.get(i).color == player:
                 if libs != self.get(i).get_libs():
-                    return True
+                    return
             elif self.get(i).color == -player:
                 if libs >= self.get(i).get_libs():
-                    return True
+                    return
         
-        return False
+        raise IllegalMoveError(pos, player, "suicide move")
 
-    def try_place(self, pos, player):
+    def place(self, pos, player = None):
         
-        if self.check(pos, player):
-            self.place(pos, player)
+        if not player: player = self.player
+
+        if not player in ( BLACK, WHITE ):
+            raise IllegalMoveError(pos, player, "invalid player")
+
+        self.check(pos, player)
+        self.place_unchecked(pos, player)
+        self.player = -player
 
     def score(self):
         
@@ -226,7 +284,7 @@ class Board:
         w = 0
         for x in range(1, self.xdim + 1):
             for y in range(1, self.ydim + 1):
-                pos = Move(x, y)
+                pos = Position(x, y)
 
                 if self.get(pos).color == WHITE:
                     w += 1

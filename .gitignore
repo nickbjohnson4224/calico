@@ -1,5 +1,4 @@
 *.o
 *.swp
-calico
-calico-learn
-libcalico.a
+*.pyc
+old_version/*
