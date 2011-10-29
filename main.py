@@ -19,41 +19,6 @@ import tui
 import sys
 import calico
 
-passes = 0
-
-def player_turn(board):
-    try:
-        move = tui.read_move()
-    except tui.ExitException:
-        sys.exit(0)
-    except ValueError as v:
-        print "Illegal input"
-        return True
-
-    if not move: passes += 1
-    else: passes = 0
-
-    if passes == 2: os.exit(0)
-  
-    try:
-        board.place(move)
-    except go.IllegalMoveError as i:
-        print "Illegal move:", i
-        return True
-
-    return False
-
-def computer_turn(board):
-    g = calico.MoveGenerator(board)
-    move = g.generate()
-
-    if not move: passes += 1
-    else: passes = 0
-
-    if passes == 2: os.exit(0)
-
-    board.place(move)
-
 if len(sys.argv) < 2:
     board = go.Board()
 else :
@@ -61,18 +26,51 @@ else :
 
 tui.display(board)
 
+passes = 0
+
 try:
     while True:
 
         # user's turn
-        if player_turn(board): continue
+        try:
+            move = tui.read_move()
+        except tui.ExitException:
+            sys.exit(0)
+        except ValueError as v:
+            print "Illegal input"
+            continue
+
+        if not move: passes += 1
+        else: passes = 0
+
+        if passes == 2: break
+  
+        try:
+            board.place(move)
+        except go.IllegalMoveError as i:
+            print "Illegal move:", i
+            continue
+        
         tui.display(board)
-        print "score: ", board.score()
 
         # computer's turn
-        computer_turn(board)
+        d = calico.LightDistributionGenerator(board)
+        g = calico.RandomDistributionMoveGenerator(d)
+        move = g.generate()
+
+        if not move: passes += 1
+        else: passes = 0
+
+        if passes == 2: break
+
+        board.place(move)
         tui.display(board)
-        print "score: ", board.score()
+    
+    score = board.score()[0] + .5
+    if score < 0:
+        print "final score: W+%.1f" % -score
+    else:
+        print "final score: B+%.1f" % score
 
 except KeyboardInterrupt:
     print ""

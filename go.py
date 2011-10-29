@@ -62,7 +62,7 @@ class Piece:
     def __init__(self, color = EMPTY):
 
         self.color = color
-        self.group = None
+        self.group = self
         self.libs = 0
         self.rank = 0
 
@@ -76,11 +76,12 @@ class Piece:
         self.get_group().libs += libs
 
     def set_group(self, group = None):
+        if not group: group = self
         self.group = group
 
     def get_group(self):
 
-        if self.group:
+        if self.group != self:
             self.group = self.group.get_group()
             return self.group
         else:
@@ -174,7 +175,7 @@ class Board:
 
         color = self.get(pos).color
         self.get(pos).color = EMPTY
-        self.get(pos).group = None
+        self.get(pos).group = self.get(pos)
         self.get(pos).libs  = 0
         self.get(pos).rank  = 0
 
@@ -217,7 +218,7 @@ class Board:
         
         self.get(pos).libs  = libs
         self.get(pos).color = player
-        self.get(pos).group = None
+        self.get(pos).group = self.get(pos)
         self.get(pos).rank  = 0
 
         # merge with adjacent allied groups
@@ -248,10 +249,9 @@ class Board:
 
         # make sure there is no suicide
         for i in self.get_adj_list(pos):
+
             if self.get(i).color == EMPTY:
                 return
-
-        for i in self.get_adj_list(pos):
             
             libs_taken = 0
 
