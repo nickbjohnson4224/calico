@@ -17,16 +17,34 @@
 import go
 import tui
 import sys
+import copy
 import calico
 
 if len(sys.argv) < 2:
     board = go.Board()
 else :
-    board = go.Board(int(sys.argv[1]))
+    dim = int(sys.argv[1])
+    board = go.Board(dim, dim)
 
-tui.display(board)
+#board.place(go.Position(1, 1))
+#tui.display(board)
 
 passes = 0
+
+#generator_factory = lambda b: calico.RandomDistributionMoveGenerator(calico.LightDistributionGenerator(b))
+generator_factory = lambda b: calico.MoveGenerator(b)
+
+#import profile
+#profile.run('for i in range(0, 10): calico.playout(board, generator_factory)')
+
+for i in range(0, 100):
+    print i
+    board1 = calico.playout(board, generator_factory)
+
+tui.display(board1)
+print "score: ", board.score()
+
+sys.exit(0)
 
 try:
     while True:

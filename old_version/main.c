@@ -26,7 +26,7 @@
 
 #define PLAYOUTS 100000
 #define TIME_PER_MOVE 10.0
-#define THREADS 4
+#define THREADS 1
 
 #define CALICO 0
 #define GEN 1

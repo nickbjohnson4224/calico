@@ -13,6 +13,7 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 import random
+import copy
 import go
 
 class DistributionGenerator:
@@ -38,29 +39,22 @@ class LightDistributionGenerator(DistributionGenerator):
         self.xdim = board.xdim
         self.ydim = board.ydim
 
-    def is_sane(self, pos):
+    def weight(self, pos):
     
-        try: self.board.check(pos, self.board.player)
-        except go.IllegalMoveError:
-            return False
+        if not self.board.check_fast(pos, self.board.player):
+            return 0.0
 
         adj = 0
         for i in self.board.get_adj_list(pos):
             if self.board.get(i).color == self.board.player:
                 adj += 1
             if self.board.get(i).get_libs() == 1:
-                return True
+                return 1.0
 
         if adj == 4:
-            return False
+            return 0.0
 
-        return True
-
-    def weight(self, pos):
-        
-        if self.is_sane(pos):
-            return 1.0
-        return 0.0
+        return 1.0
 
     def max_weight(self):
 
@@ -113,8 +107,7 @@ class MoveGenerator:
 
     def is_sane(self, pos):
     
-        try: self.board.check(pos, self.board.player)
-        except go.IllegalMoveError:
+        if not self.board.check_fast(pos, self.board.player):
             return False
 
         adj = 0
@@ -130,7 +123,18 @@ class MoveGenerator:
         return True
 
     def generate(self):
-        return None 
+        
+        for i in range(1, 20):
+
+            x = int(random.random() * self.board.xdim) + 1
+            y = int(random.random() * self.board.ydim) + 1
+            pos = go.Position(x, y)
+
+            if self.is_sane(pos):
+                return pos
+
+        return None
+            
 
 class RandomDistributionMoveGenerator(MoveGenerator):
     
@@ -174,3 +178,24 @@ class MaximumDistributionMoveGenerator(MoveGenerator):
                     maxmove = pos
 
         return maxmove
+
+def playout(board, generator_factory):
+   
+    board = copy.copy(board)
+
+    passes = 0
+    while True:
+        
+        g = generator_factory(board)
+        move = g.generate()
+
+        if not move:
+            passes += 1
+        else:
+            passes = 0
+
+        board.place_unchecked(move, board.player)
+        board.player = -board.player
+
+        if passes == 2:
+            return board

@@ -56,6 +56,9 @@ class Position:
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __str__(self):
+        return "(%d %d)" % (self.x, self.y)
+
 # represents a piece on the board
 class Piece:
 
@@ -109,29 +112,37 @@ class Piece:
 # represents a Go board
 class Board:
     
-    def __init__(self, dim = 19):
+    def __init__(self, xdim = 19, ydim = 19):
 
         self.board = []
-        self.xdim = dim
-        self.ydim = dim
+        self.xdim = xdim
+        self.ydim = ydim
         self.last = None
         self.llast = None
         self.player = BLACK
         self.ko = None
 
-        for i in range(0, dim):
+        for i in range(0, xdim):
             self.board += [[]]
-            for j in range(0, dim):
+            for j in range(0, ydim):
                 self.board[i] += [ Piece() ]
 
-    def get(self, pos):
+    def __copy__(self):
+        
+        new = Board(self.xdim, self.ydim)
 
-        if not pos:
-            return None
-        
-        if pos.x < 1 or pos.y < 1 or pos.x > self.xdim or pos.y > self.ydim:
-            return None
-        
+        for x in range(1, self.xdim + 1):
+            for y in range(1, self.ydim + 1):
+                new.place_unchecked(Position(x, y), self.get(Position(x, y)).color)
+
+        new.last = self.last
+        new.llast = self.llast
+        new.player = self.player
+        new.ko = self.ko
+
+        return new
+
+    def get(self, pos): 
         return self.board[pos.x - 1][pos.y - 1]
 
     def validate_pos(self, pos):
@@ -143,7 +154,9 @@ class Board:
             return None
 
         return pos
-    
+
+    _adj_table = [ [1, 0], [0, 1], [-1, 0], [0, -1] ]
+
     def get_adj_pos(self, pos, direction):
         
         if not pos:
@@ -161,6 +174,20 @@ class Board:
     def get_adj_list(self, pos):
         
         adj = []
+
+        if pos.x < self.xdim:
+            adj += [ Position(pos.x + 1, pos.y) ]
+
+        if pos.y < self.ydim:
+            adj += [ Position(pos.x, pos.y + 1) ]
+
+        if pos.x > 1:
+            adj += [ Position(pos.x - 1, pos.y) ]
+
+        if pos.y > 1:
+            adj += [ Position(pos.x, pos.y - 1) ]
+
+        return adj
 
         for i in range(0, 4):
             if self.get_adj_pos(pos, i):
@@ -188,7 +215,7 @@ class Board:
     
     def place_unchecked(self, pos, player):
         
-        if not pos or not self.get(pos):
+        if not pos or not self.get(pos) or not player:
             return
 
         self.ko = None
@@ -268,6 +295,44 @@ class Board:
                     return
         
         raise IllegalMoveError(pos, player, "suicide move")
+
+    def check_fast(self, pos, player):
+
+        if not pos: return True
+
+        if not self.validate_pos(pos):
+            return False
+
+        # make sure space is open
+        if self.get(pos).color != EMPTY:
+            return False
+
+        # make sure there are no ko captures
+        if self.ko and self.get(self.ko).get_libs() == 1:
+            for i in self.get_adj_list(pos):
+                if i == self.ko: return False
+
+        # make sure there is no suicide
+        for i in self.get_adj_list(pos):
+
+            if self.get(i).color == EMPTY:
+                return True
+            
+            libs_taken = 0
+
+            for j in self.get_adj_list(pos):
+                if self.get(j).group == self.get(i).group:
+                    libs_taken += 1
+            
+            if self.get(i).color == player:
+                if libs_taken < self.get(i).get_libs():
+                    return True
+
+            elif self.get(i).color == -player:
+                if libs_taken == self.get(i).get_libs():
+                    return True
+        
+        return False
 
     def place(self, pos, player = None):
         
