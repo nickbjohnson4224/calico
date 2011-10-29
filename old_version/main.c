@@ -117,7 +117,7 @@ void *refresh_thread(void *mutex_ptr) {
 				off1.y = board2_off.y + (GO_DIM - y) * 23 + 2;
 				off1.w = 23;
 				off1.h = 23;
-				color = ((atan(influence[go_get_pos(x, y)] / 5000.0) + M_PI_2) / M_PI) * 255;
+				color = ((atan(influence[go_get_pos(x, y)] / 4000.0) + M_PI_2) / M_PI) * 255;
 				color = 255 - color;
 				color = (color << 16 | color << 8 | color);
 				SDL_FillRect(screen, &off1, color);
@@ -147,10 +147,17 @@ void *refresh_thread(void *mutex_ptr) {
 				}
 
 				hue = (double) wins / plays;
-				value = (double) (atan(sqrt(plays / 1000.0)) / (M_PI_2));
+				
+//				if (hue > .6) hue = 1.0;
+//				else if (hue < .4) hue = 0.0;
+//				else hue = (hue - .4) / .2;
 
-				r = (value + 1) / 2 * (1.0 - hue);
-				g = value;// * atan((hue)) / M_PI + .5;
+				hue = atan((hue - .5) * 20) / M_PI + .5;
+
+				value = (double) (atan(plays / 500.0) / (M_PI_2));
+
+				r = value * (1 - hue) * .7;
+				g = value * hue;
 				b = 0.0;
 
 				color = ((uint32_t) (r * 255)) << 16 | ((uint32_t) (g * 255)) << 8 | ((uint32_t) (b * 255));
@@ -209,6 +216,8 @@ int main(void) {
 	white_bmp = SDL_LoadBMP("white.bmp");
 	black_bmp = SDL_LoadBMP("black.bmp");
 
+	SDL_BlitSurface(board_bmp, NULL, screen, &board1_off);
+
 	pthread_create(&refresh, NULL, refresh_thread, mutex);
 
 	srand(time(NULL));
@@ -239,7 +248,7 @@ int main(void) {
 		for (i = 0; i < THREADS; i++) {
 			pthread_join(thread[i], NULL);
 
-			printf("thread %d terminated with %d playouts\n", i, thread_uct[i]->plays);
+//			printf("thread %d terminated with %d playouts\n", i, thread_uct[i]->plays);
 		}
 
 		SDL_mutexP(mutex);
@@ -250,17 +259,17 @@ int main(void) {
 		thread_uct[0] = NULL;
 		SDL_mutexV(mutex);
 
-		printf("playouts: %d\n", uct->plays);
-		printf("playouts per second: %f\n", uct->plays / ((clock() - playout_time) / CLOCKS_PER_SEC));
-		printf("highest confidence: %f\n", uct_rate(uct->child[uct_best_rate(uct)]));
+//		printf("playouts: %d\n", uct->plays);
+//		printf("playouts per second: %f\n", uct->plays / ((clock() - playout_time) / CLOCKS_PER_SEC));
+//		printf("highest confidence: %f\n", uct_rate(uct->child[uct_best_rate(uct)]));
 
 		move = uct_best_rate(uct);
 
 		rate = uct_eval_rate(uct, move);
-		uct_list(uct);
+//		uct_list(uct);
 		free_uct(uct);
 
-		if (rate < .3) {
+		if (rate < .4) {
 			printf("black's move: resign");
 			go_print(board);
 			return 0;
@@ -270,22 +279,22 @@ int main(void) {
 		move = gen_move(board);
 		#endif
 
-		printf("\n");
-		printf("influence map:\n");
-		for (y = GO_DIM - 1; y >= 0; y--) {
-			for (x = 0; x < GO_DIM; x++) {
-				if (influence[x + y * GO_DIM] > 1000) {
-					printf("# ");
-				}
-				else if (influence[x + y * GO_DIM] < -1000) {
-					printf("O ");
-				}
-				else {
-					printf("- ");
-				}
-			}
-			printf("\n");
-		}
+//		printf("\n");
+//		printf("influence map:\n");
+//		for (y = GO_DIM - 1; y >= 0; y--) {
+//			for (x = 0; x < GO_DIM; x++) {
+//				if (influence[x + y * GO_DIM] > 1000) {
+//					printf("# ");
+//				}
+//				else if (influence[x + y * GO_DIM] < -1000) {
+//					printf("O ");
+//				}
+//				else {
+//					printf("- ");
+//				}
+//			}
+//			printf("\n");
+//		}
 
 		go_place(board, move, BLACK);
 		printf("black's move: %d\n", move);
@@ -301,9 +310,9 @@ int main(void) {
 			printf("enter a move: ");
 			move = read_move();
 
-			if (move == PASS) {
-				goto exit;
-			}
+//			if (move == PASS) {
+//				goto exit;
+//			}
 			if (!go_check(board, move, WHITE)) {
 				go_place(board, move, WHITE);
 				go_print(board);
@@ -318,7 +327,7 @@ int main(void) {
 		}
 	}
 
-	exit:
+//	exit:
 
 	SDL_FreeSurface(screen);
 	SDL_Quit();
