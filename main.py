@@ -26,25 +26,10 @@ else :
     dim = int(sys.argv[1])
     board = go.Board(dim, dim)
 
-#board.place(go.Position(1, 1))
-#tui.display(board)
+tui.display(board)
 
-passes = 0
-
-#generator_factory = lambda b: calico.RandomDistributionMoveGenerator(calico.LightDistributionGenerator(b))
-generator_factory = lambda b: calico.MoveGenerator(b)
-
-#import profile
-#profile.run('for i in range(0, 10): calico.playout(board, generator_factory)')
-
-for i in range(0, 100):
-    print i
-    board1 = calico.playout(board, generator_factory)
-
-tui.display(board1)
-print "score: ", board.score()
-
-sys.exit(0)
+g = calico.UCTMoveGenerator(board)
+move = (1000, 1000)
 
 try:
     while True:
@@ -72,17 +57,44 @@ try:
         tui.display(board)
 
         # computer's turn
-        d = calico.LightDistributionGenerator(board)
-        g = calico.RandomDistributionMoveGenerator(d)
-        move = g.generate()
+        
+        g = calico.UCTMoveGenerator(board)
+        for i in range(g.plays, 100): g.playout()
+
+        g.display()
+
+        move = g.generate_conservative()
+
+        print move
 
         if not move: passes += 1
         else: passes = 0
 
         if passes == 2: break
 
-        board.place(move)
+        board = g.child[move].board
         tui.display(board)
+
+        # computer's turn
+#        if move in g.child:
+#            g = g.child[move]
+#        else:
+#            g = calico.UCTMoveGenerator(board)
+#        for i in range(g.plays, 100): g.playout()
+#
+#        g.display()
+#
+#        move = g.generate_conservative()
+#
+ #       print move
+#
+ #       if not move: passes += 1
+  #      else: passes = 0
+#
+ #       if passes == 2: break
+#
+ #       board = g.child[move].board
+  #      tui.display(board)
     
     score = board.score()[0] + .5
     if score < 0:

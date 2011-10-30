@@ -35,29 +35,7 @@ class IllegalMoveError(Exception):
         else:
             player_name = "invalid"
         
-        return "(%d %d %s) : %s" % (self.pos.x, self.pos.y, player_name, self.reason)
-
-# represents a position or move (None means pass)
-class Position:
-
-    def __init__(self, x, y):
-
-        self.x = x
-        self.y = y
-
-    def __eq__(self, other):
-        
-        if not other:
-            return False
-        if self.x == other.x and self.y == other.y:
-            return True
-        return False
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __str__(self):
-        return "(%d %d)" % (self.x, self.y)
+        return "(%d %d %s) : %s" % (self.pos[0], self.pos[1], player_name, self.reason)
 
 # represents a piece on the board
 class Piece:
@@ -133,7 +111,7 @@ class Board:
 
         for x in range(1, self.xdim + 1):
             for y in range(1, self.ydim + 1):
-                new.place_unchecked(Position(x, y), self.get(Position(x, y)).color)
+                new.place_unchecked((x, y), self.get((x, y)).color)
 
         new.last = self.last
         new.llast = self.llast
@@ -143,14 +121,15 @@ class Board:
         return new
 
     def get(self, pos): 
-        return self.board[pos.x - 1][pos.y - 1]
+
+        return self.board[pos[0] - 1][pos[1] - 1]
 
     def validate_pos(self, pos):
 
         if not pos:
             return None
 
-        if pos.x < 1 or pos.y < 1 or pos.x > self.xdim or pos.y > self.ydim:
+        if pos[0] < 1 or pos[1] < 1 or pos[0] > self.xdim or pos[1] > self.ydim:
             return None
 
         return pos
@@ -163,35 +142,29 @@ class Board:
             return None
 
         if direction == 0:
-            return self.validate_pos(Position(pos.x + 1, pos.y))
+            return self.validate_pos((pos.x + 1, pos.y))
         if direction == 1:
-            return self.validate_pos(Position(pos.x, pos.y + 1))
+            return self.validate_pos((pos.x, pos.y + 1))
         if direction == 2:
-            return self.validate_pos(Position(pos.x - 1, pos.y))
+            return self.validate_pos((pos.x - 1, pos.y))
         if direction == 3:
-            return self.validate_pos(Position(pos.x, pos.y - 1))
+            return self.validate_pos((pos.x, pos.y - 1))
 
     def get_adj_list(self, pos):
         
         adj = []
 
-        if pos.x < self.xdim:
-            adj += [ Position(pos.x + 1, pos.y) ]
+        if pos[0] < self.xdim:
+            adj += [ (pos[0] + 1, pos[1]) ]
 
-        if pos.y < self.ydim:
-            adj += [ Position(pos.x, pos.y + 1) ]
+        if pos[1] < self.ydim:
+            adj += [ (pos[0], pos[1] + 1) ]
 
-        if pos.x > 1:
-            adj += [ Position(pos.x - 1, pos.y) ]
+        if pos[0] > 1:
+            adj += [ (pos[0] - 1, pos[1]) ]
 
-        if pos.y > 1:
-            adj += [ Position(pos.x, pos.y - 1) ]
-
-        return adj
-
-        for i in range(0, 4):
-            if self.get_adj_pos(pos, i):
-                adj += [ self.get_adj_pos(pos, i) ]
+        if pos[1] > 1:
+            adj += [ (pos[0], pos[1] - 1) ]
 
         return adj
 
@@ -351,7 +324,7 @@ class Board:
         w = 0
         for x in range(1, self.xdim + 1):
             for y in range(1, self.ydim + 1):
-                pos = Position(x, y)
+                pos = (x, y)
 
                 if self.get(pos).color == WHITE:
                     w += 1

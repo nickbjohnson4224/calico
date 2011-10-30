@@ -13,7 +13,9 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 import random
+import heapq
 import copy
+import math
 import go
 
 class DistributionGenerator:
@@ -27,10 +29,6 @@ class DistributionGenerator:
 
         return 1.0
 
-    def max_weight(self):
-
-        return 1.0
-
 class LightDistributionGenerator(DistributionGenerator):
     
     def __init__(self, board):
@@ -40,7 +38,9 @@ class LightDistributionGenerator(DistributionGenerator):
         self.ydim = board.ydim
 
     def weight(self, pos):
-    
+   
+        if not pos: return 0.5
+
         if not self.board.check_fast(pos, self.board.player):
             return 0.0
 
@@ -55,50 +55,6 @@ class LightDistributionGenerator(DistributionGenerator):
             return 0.0
 
         return 1.0
-
-    def max_weight(self):
-
-        return 1.0
-      
-class CachedDistributionGenerator(DistributionGenerator):
-    
-    def __init__(self, dg):
-        
-        self.xdim = dg.xdim
-        self.ydim = dg.ydim
-
-        # build cache
-        self.mcache = dg.max_weight()
-        self.ncache = dg.weight(None)
-        self.wcache = []
-        for x in range(0, dg.xdim):
-            self.wcache += [[]]
-            for y in range(0, dg.ydim):
-                self.wcache[x] += [ dg.weight(go.Position(x + 1, y + 1)) ]
-
-    def weight(self, pos):
-        
-        if pos:
-            try:
-                weight = self.wcache[pos.x - 1][pos.y - 1]
-                return weight
-            except IndexError:
-                return 0.0
-        else:
-            return self.ncache
-
-    def max_weight(self):
-
-        return self.mcache
-
-    def flush(self):
-
-        # rebuild cache
-        self.mcache = dg.max_weight()
-        self.ncache = dg.weight(None)
-        for x in range(0, dg.xdim):
-            for y in range(0, dg.ydim):
-                self.wcache[x][y] = dg_weight(go.Position(x + 1, y + 1));
 
 class MoveGenerator:
 
@@ -128,7 +84,7 @@ class MoveGenerator:
 
             x = int(random.random() * self.board.xdim) + 1
             y = int(random.random() * self.board.ydim) + 1
-            pos = go.Position(x, y)
+            pos = (x, y)
 
             if self.is_sane(pos):
                 return pos
@@ -148,7 +104,7 @@ class RandomDistributionMoveGenerator(MoveGenerator):
             # propose a move
             x = int(random.random() * self.dg.xdim) + 1
             y = int(random.random() * self.dg.ydim) + 1
-            pos = go.Position(x, y)
+            pos = (x, y)
             if (random.random() < 1.0 / (self.dg.xdim * self.dg.ydim)):
                 pos = None
 
@@ -156,7 +112,7 @@ class RandomDistributionMoveGenerator(MoveGenerator):
             weight = self.dg.weight(pos)
             if weight == 0.0:
                 continue
-            if random.random() < weight / self.dg.max_weight():
+            if random.random() < weight:
                 return pos
 
 class MaximumDistributionMoveGenerator(MoveGenerator):
@@ -171,7 +127,7 @@ class MaximumDistributionMoveGenerator(MoveGenerator):
         maxmove = None
         for x in range(0, self.dg.xdim):
             for y in range(0, self.dg.ydim):
-                pos = go.Position(x, y)
+                pos = (x, y)
 
                 if maximum < self.dg.weight(pos):
                     maximum = self.dg.weight(pos)
@@ -179,9 +135,55 @@ class MaximumDistributionMoveGenerator(MoveGenerator):
 
         return maxmove
 
-def playout(board, generator_factory):
+class SortedDistributionMoveGenerator(MoveGenerator):
+
+    def __init__(self, dg):
+        
+        self.heap = []
+        for x in range(1, dg.xdim + 1):
+            for y in range(1, dg.ydim + 1):
+                pos = (x, y)
+                heapq.heappush(self.heap, (-dg.weight(pos), pos))
+        heapq.heappush(self.heap, (-dg.weight(None), None))
+
+    def generate(self):
+        
+        tup = heapq.heappop(self.heap)
+        pos = tup[1]
+
+        heapq.heappush(self.heap, (tup[0] / 2.0, tup[1]))
+
+        return pos
+
+class RandomSortedDistributionMoveGenerator(MoveGenerator):
+    
+    def __init__(self, dg):
+        
+        self.heap = []
+        for x in range(1, dg.xdim + 1):
+            for y in range(1, dg.ydim + 1):
+                pos = (x, y)
+                heapq.heappush(self.heap, (-dg.weight(pos), random.random(), pos))
+        heapq.heappush(self.heap, (-dg.weight(None), random.random(), None))
+
+    def generate(self):
+        
+        tup = heapq.heappop(self.heap)
+        pos = tup[2]
+
+        heapq.heappush(self.heap, (tup[0] / 2.0, random.random(), tup[1]))
+
+        if tup[0] == 0.0:
+            return None
+
+        return pos
+
+def playout(board, generator_factory = None):
    
     board = copy.copy(board)
+
+    if not generator_factory:
+        generator_factory = lambda b: RandomDistributionMoveGenerator(LightDistributionGenerator(b))
 
     passes = 0
     while True:
@@ -199,3 +201,124 @@ def playout(board, generator_factory):
 
         if passes == 2:
             return board
+
+class UCTMoveGenerator(MoveGenerator):
+    
+    def __init__(self, board, parent = None):
+        
+        self.wins  = 1
+        self.plays = 2
+
+        self.board = board
+        
+        self.child  = {}
+        self.parent = parent
+
+    def __err(self, s, n):
+        return (0.1 * math.log(s + 1) / math.log(self.board.xdim * self.board.ydim)) * math.sqrt(1.0 / n)
+
+    def ucb(self):
+
+        if self.parent:
+            ucb = (float(self.wins) / self.plays) + self.__err(self.parent.plays, self.plays)
+        else:
+            ucb = (float(self.wins) / self.plays) + self.__err(self.plays, self.plays)
+
+        return ucb
+
+    def lcb(self):
+
+        if self.parent:
+            lcb = (float(self.wins) / self.plays) - self.__err(self.parent.plays, self.plays)
+        else:
+            lcb = (float(self.wins) / self.plays) - self.__err(self.plays, self.plays)
+
+        return lcb
+
+    def playout_norecurse(self):
+        
+        score = playout(self.board).score()
+        if score[0] > .5:
+            winner = go.BLACK
+        else:
+            winner = go.WHITE
+
+        if winner == self.board.player:
+            self.wins += 1
+        self.plays += 1
+
+        return winner
+
+    def generate(self):
+
+        heap = []
+
+        try:
+            child = self.child[None]
+            heapq.heappush(heap, (child.lcb(), 1.0, None))
+        except KeyError:
+            heapq.heappush(heap, (0.0, 0.1, None))
+
+        for x in range(1, self.board.xdim + 1):
+            for y in range(1, self.board.ydim + 1):
+                try:
+                    child = self.child[(x, y)]
+                    if child:
+                        heapq.heappush(heap, (child.lcb(), random.random(), (x, y)))
+                except KeyError:
+                    heapq.heappush(heap, (0.0, random.random(), (x, y)))
+        
+        return heapq.heappop(heap)[2]
+
+    def generate_conservative(self):
+        
+        heap = []
+        heapq.heappush(heap, (0.9, 1.0, None))
+        for x in self.child:
+            child = self.child[x]
+            if child:
+                heapq.heappush(heap, (child.ucb(), random.random(), x))
+        
+        return heapq.heappop(heap)[2]
+
+    def playout(self):
+        
+        # generate new valid move
+        pos = self.generate()
+        if pos in self.child:
+            winner = self.child[pos].playout()
+        else:
+            while pos not in self.child:
+
+                if not self.board.check_fast(pos, self.board.player):
+                    self.child[pos] = None
+                    pos = self.generate()
+                    continue
+
+                break
+            
+            board = copy.copy(self.board)
+            board.place(pos)
+            self.child[pos] = UCTMoveGenerator(board, self)
+            winner = self.child[pos].playout_norecurse()
+        
+        if winner == self.board.player:
+            self.wins += 1
+        self.plays += 1
+
+        return winner
+
+    def display(self, level = 0):
+
+        import sys
+        
+        def printf(fmt, *args):
+            sys.stdout.write(fmt % args)
+    
+        for i in range(0, level): printf("\t")
+        print self.board.last,
+        printf(": [ %.2f, %.2f ] %d\n", self.lcb(), self.ucb(), self.plays)
+
+        for c in self.child:
+            if self.child[c]:
+                self.child[c].display(level + 1)

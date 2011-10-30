@@ -32,18 +32,18 @@ def display(board):
     for y in range(board.ydim, 0, -1):
         printf(" %2d", y)
 
-        if board.last == go.Position(1, y):
+        if board.last == (1, y):
             printf("[")
         else:
             printf(" ")
 
         for x in range(1, board.xdim + 1):
                 
-            libs = board.get(go.Position(x, y)).get_libs()
+            libs = board.get((x, y)).get_libs()
 
-            if board.get(go.Position(x, y)).color == go.WHITE:
+            if board.get((x, y)).color == go.WHITE:
                 printf("O")
-            elif board.get(go.Position(x, y)).color == go.BLACK:
+            elif board.get((x, y)).color == go.BLACK:
                 printf("#")
             else:
                 if (x - 3) % 6 == 1 and (y - 3) % 6 == 1 and (board.xdim == 19 or board.xdim == 13):
@@ -51,9 +51,9 @@ def display(board):
                 else:
                     printf("-")
                 
-            if board.last == go.Position(x, y):
+            if board.last == (x, y):
                 printf("]")
-            elif board.last == go.Position(x + 1, y):
+            elif board.last == (x + 1, y):
                 printf("[")
             else:
                 printf(" ")
@@ -87,4 +87,4 @@ def read_move():
     if letter < 1 or letter > 25 or number < 1:
         raise ValueError()
 
-    return go.Position(letter, number)
+    return (letter, number)
